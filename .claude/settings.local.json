@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --no-turbopack)",
+      "Read(//Users/rahmat/**)",
+      "Bash(npx create-next-app@latest stablecoin-poc --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --no-turbopack)",
+      "Bash(cp -r /Users/rahmat/stablecoin-poc/* /Users/rahmat/PRODUCTION_STABLECOIN_POC/)",
+      "Bash(cp -r /Users/rahmat/stablecoin-poc/.* /Users/rahmat/PRODUCTION_STABLECOIN_POC/)",
+      "Bash(npm run:*)",
+      "Bash(npm install:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}

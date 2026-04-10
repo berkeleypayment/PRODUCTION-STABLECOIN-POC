@@ -1,65 +1,614 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState, useCallback, useRef } from "react";
+
+/* ── SVG icons ── */
+const CopySvg = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="9" y="9" width="13" height="13" rx="2" />
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+  </svg>
+);
+const EyeSvg = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+const EyeOffSvg = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+    <line x1="1" y1="1" x2="23" y2="23" />
+  </svg>
+);
+const CheckSvg = () => <span>✓</span>;
+
+/* ── Mock data ── */
+const cards = [
+  { currency: "🇨🇦 CAD", num: "★★★★  ★★★★  ★★★★  3854", panReal: "4242 4242 4242 3854", bal: "$5,001.86", expiry: "11/27", expReal: "11/27", cvvReal: "782", color: "card-color-pink" },
+  { currency: "🇺🇸 USD", num: "★★★★  ★★★★  ★★★★  5888", panReal: "4242 4242 4242 5888", bal: "$1,200.41", expiry: "03/29", expReal: "03/29", cvvReal: "394", color: "card-color-purple" },
+];
+
+const cadTxs = [
+  { name: "Interac e-Transfer → john@example.com", date: "Mar 24, 2026 · 09:30 AM", amt: "-$450.00 CAD", stat: "Settled" },
+  { name: "Interac e-Transfer → My Account", date: "Mar 22, 2026 · 02:10 PM", amt: "+$1,500.00 CAD", stat: "Settled" },
+  { name: "Interac e-Transfer → sara@example.com", date: "Mar 18, 2026 · 11:45 AM", amt: "-$200.00 CAD", stat: "Settled" },
+  { name: "Interac e-Transfer → My Account", date: "Mar 14, 2026 · 08:00 AM", amt: "+$3,000.00 CAD", stat: "Settled" },
+];
+const usdTxs = [
+  { name: "BIT Transfer → emailuser2@berkeley.com", date: "Mar 24, 2026 · 10:14 AM", amt: "-$500.00 USD", stat: "Settled" },
+  { name: "BIT Transfer → My Account", date: "Mar 23, 2026 · 02:58 PM", amt: "+$1,700.41 USD", stat: "Settled" },
+  { name: "CAD → USD Conversion", date: "Mar 21, 2026 · 09:00 AM", amt: "$500 CAD → $353.05 USD", stat: "Settled" },
+  { name: "BIT Transfer → emailuser1@berkeley.com", date: "Mar 20, 2026 · 04:30 PM", amt: "-$250.00 USD", stat: "Settled" },
+];
+
+/* ── Helpers ── */
+function fmtRaw(r: string) {
+  return (parseInt(r || "0") / 100).toFixed(2);
+}
+
+function useNumpad() {
+  const [raw, setRaw] = useState("");
+  const press = (d: string) => setRaw((r) => (r.length >= 7 ? r : r + d));
+  const del = () => setRaw((r) => r.slice(0, -1));
+  const reset = () => setRaw("");
+  return { raw, formatted: fmtRaw(raw), press, del, reset };
+}
+
+/* ── Numpad component ── */
+function Numpad({ onPress, onDel }: { onPress: (d: string) => void; onDel: () => void }) {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="numpad">
+      {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => (
+        <div key={d} className="nk" onClick={() => onPress(d)}>{d}</div>
+      ))}
+      <div className="nk ghost" />
+      <div className="nk" onClick={() => onPress("0")}>0</div>
+      <div className="nk del" onClick={onDel}>⌫</div>
+    </div>
+  );
+}
+
+/* ── Copy button with check feedback ── */
+function CopyButton({ text, className }: { text: string; className?: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard.writeText(text).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  };
+  return (
+    <button className={className || "copy-btn"} onClick={copy}>
+      {copied ? <CheckSvg /> : <CopySvg />}
+    </button>
+  );
+}
+
+/* ── Toast ── */
+function Toast({ message }: { message: string | null }) {
+  return <div className={`toast ${message ? "show" : ""}`}>{message}</div>;
+}
+
+/* ── MC Logo ── */
+function MCLogo({ small }: { small?: boolean }) {
+  const cls = small ? "mc-logo-sm" : "mc-logo";
+  return (
+    <div className={cls}>
+      <div className="c1" />
+      <div className="c2" />
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════ */
+export default function Home() {
+  const [activeCard, setActiveCard] = useState(0);
+  const [usdUnlocked, setUsdUnlocked] = useState(false);
+  const [panVisible, setPanVisible] = useState(false);
+  const [cvvVisible, setCvvVisible] = useState(false);
+
+  // Drawers
+  const [openDrawer, setOpenDrawer] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Convert state
+  const [cadToUsd, setCadToUsd] = useState(true);
+  const [liveRate, setLiveRate] = useState<number | null>(null);
+  const [convertAmt, setConvertAmt] = useState("100");
+  const [rateUpdated, setRateUpdated] = useState("Fetching rate…");
+
+  // Register state
+  const [registered, setRegistered] = useState(false);
+  const [regEmail, setRegEmail] = useState("");
+  const [regStatus, setRegStatus] = useState<{ type: string; title: string; sub: string } | null>(null);
+  const [regCopyVisible, setRegCopyVisible] = useState(false);
+  const [accountId, setAccountId] = useState("—");
+  const [extTag, setExtTag] = useState("—");
+  const [regBtnText, setRegBtnText] = useState("Register via BIT Network");
+  const [regBtnDisabled, setRegBtnDisabled] = useState(false);
+
+  // Numpads
+  const usdPad = useNumpad();
+  const cadPad = useNumpad();
+  const reqPad = useNumpad();
+
+  const showToast = useCallback((msg: string) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast(msg);
+    toastTimer.current = setTimeout(() => setToast(null), 3000);
+  }, []);
+
+  const closeAll = useCallback(() => {
+    setOpenDrawer(null);
+    setModalOpen(false);
+  }, []);
+
+  // ── Card switching ──
+  const bringToFront = useCallback((idx: number) => {
+    if (idx === activeCard) return;
+    setPanVisible(false);
+    setCvvVisible(false);
+    setActiveCard(idx);
+  }, [activeCard]);
+
+  // ── Fetch rate for convert ──
+  const fetchRate = useCallback(async (direction: boolean) => {
+    const base = direction ? "CAD" : "USD";
+    const quote = direction ? "USD" : "CAD";
+    try {
+      const res = await fetch(`https://api.frankfurter.dev/v2/rates?base=${base}&quotes=${quote}`);
+      const d = await res.json();
+      setLiveRate(d[0].rate);
+      setRateUpdated("Updated just now");
+    } catch {
+      setLiveRate(direction ? 0.7061 : 1.417);
+      setRateUpdated("Using cached rate");
+    }
+  }, []);
+
+  // ── Open convert drawer ──
+  const openConvertDrawer = useCallback(() => {
+    const dir = activeCard === 0;
+    setCadToUsd(dir);
+    setLiveRate(null);
+    setConvertAmt("100");
+    setOpenDrawer("convert");
+    fetchRate(dir);
+  }, [activeCard, fetchRate]);
+
+  const swapConvert = useCallback(() => {
+    setCadToUsd((prev) => {
+      const next = !prev;
+      setLiveRate(null);
+      fetchRate(next);
+      return next;
+    });
+  }, [fetchRate]);
+
+  // ── Activate USD ──
+  const activateUSD = useCallback(() => {
+    setUsdUnlocked(true);
+    setModalOpen(false);
+    setActiveCard(1);
+    showToast("USD account created — fund it now");
+    setTimeout(() => {
+      setCadToUsd(true);
+      setLiveRate(null);
+      setConvertAmt("100");
+      setOpenDrawer("convert");
+      fetchRate(true);
+    }, 1600);
+  }, [showToast, fetchRate]);
+
+  // ── Send USD ──
+  const doSend = useCallback(() => {
+    const amt = usdPad.formatted;
+    const email = (document.getElementById("emailInput") as HTMLInputElement)?.value.trim();
+    if (!email || amt === "0.00") return;
+    closeAll();
+    showToast("$" + amt + " USD sent via BIT");
+    usdPad.reset();
+  }, [usdPad, closeAll, showToast]);
+
+  // ── Send CAD ──
+  const doInteracSend = useCallback(() => {
+    const amt = cadPad.formatted;
+    const rec = (document.getElementById("interacRecipient") as HTMLInputElement)?.value.trim();
+    if (!rec || amt === "0.00") return;
+    closeAll();
+    showToast("$" + amt + " CAD sent via Interac");
+    cadPad.reset();
+  }, [cadPad, closeAll, showToast]);
+
+  // ── Request CAD ──
+  const doInteracRequest = useCallback(() => {
+    const amt = reqPad.formatted;
+    const rec = (document.getElementById("reqRecipient") as HTMLInputElement)?.value.trim();
+    if (!rec || amt === "0.00") return;
+    closeAll();
+    showToast("Request for $" + amt + " CAD sent via Interac");
+    reqPad.reset();
+  }, [reqPad, closeAll, showToast]);
+
+  // ── Convert ──
+  const doConvert = useCallback(() => {
+    const amt = parseFloat(convertAmt) || 0;
+    const r = liveRate || (cadToUsd ? 0.7061 : 1.417);
+    const out = (amt * r).toFixed(2);
+    const fromC = cadToUsd ? "CAD" : "USD";
+    const toC = cadToUsd ? "USD" : "CAD";
+    if (amt <= 0) return;
+    closeAll();
+    showToast(`Converted $${amt.toFixed(2)} ${fromC} → $${out} ${toC}`);
+  }, [convertAmt, liveRate, cadToUsd, closeAll, showToast]);
+
+  // ── Register ──
+  const doRegister = useCallback(() => {
+    const email = regEmail.trim();
+    if (!email || !email.includes("@")) {
+      setRegStatus({ type: "error", title: "Invalid email", sub: "Please enter a valid email address." });
+      return;
+    }
+    setRegBtnDisabled(true);
+    setRegBtnText("Checking…");
+    setRegStatus({ type: "checking", title: "Verifying email", sub: "Checking your address is ready to receive funds…" });
+
+    setTimeout(() => {
+      if (email === "taken@berkeley.com") {
+        setRegStatus({ type: "error", title: "Email already registered", sub: "This email is linked to an existing account." });
+        setRegBtnText("Register via BIT Network");
+        setRegBtnDisabled(false);
+        return;
+      }
+      setRegStatus({ type: "checking", title: "Creating account", sub: "Linking email to your USD card…" });
+      setTimeout(() => {
+        setRegistered(true);
+        setAccountId("BIT-" + Math.random().toString(36).substring(2, 8).toUpperCase());
+        setExtTag("XT-" + Math.random().toString(36).substring(2, 10).toUpperCase());
+        setRegCopyVisible(true);
+        setRegStatus({ type: "success", title: "Registered successfully", sub: "Share your email to receive USD." });
+        setRegBtnText("✓ Registered");
+        setRegBtnDisabled(true);
+        showToast("Registered on BIT Network");
+      }, 1200);
+    }, 1400);
+  }, [regEmail, showToast]);
+
+  const resetRegStatus = useCallback(() => {
+    if (registered) return;
+    setRegStatus(null);
+    setRegCopyVisible(false);
+    setRegBtnText("Register via BIT Network");
+    setRegBtnDisabled(false);
+  }, [registered]);
+
+  // ── Derived values ──
+  const card = cards[activeCard];
+  const txs = activeCard === 0 ? cadTxs : usdTxs;
+  const txTitle = activeCard === 0 ? "CAD Transactions" : "USD Transactions";
+  const rate = liveRate || (cadToUsd ? 0.7061 : 1.417);
+  const convertAmtNum = parseFloat(convertAmt) || 0;
+  const convertOut = (convertAmtNum * rate).toFixed(2);
+  const fc = cadToUsd ? "CAD" : "USD";
+  const tc = cadToUsd ? "USD" : "CAD";
+  const rateStr = `1 ${fc} = ${rate.toFixed(4)} ${tc}`;
+
+  const handleSend = () => {
+    if (activeCard === 0) setOpenDrawer("interacSend");
+    else setOpenDrawer("send");
+  };
+  const handleReceive = () => {
+    if (activeCard === 0) setOpenDrawer("interacReceive");
+    else setOpenDrawer("receive");
+  };
+
+  return (
+    <>
+      {/* Overlay */}
+      <div className={`overlay ${openDrawer ? "open" : ""}`} onClick={closeAll} />
+
+      {/* ── SEND USD DRAWER ── */}
+      <div className={`drawer ${openDrawer === "send" ? "open" : ""}`}>
+        <div className="drawer-header">
+          <div className="drawer-title">Send USD</div>
+          <div className="drawer-close" onClick={closeAll}>✕</div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div className="drawer-body">
+          <div className="amount-box">
+            <div className="amount-label-sm">Amount</div>
+            <div className="amount-val"><span>$</span><span>{usdPad.formatted}</span></div>
+            <div className="amount-badge">🇺🇸 USD</div>
+          </div>
+          <Numpad onPress={usdPad.press} onDel={usdPad.del} />
+          <div>
+            <div className="field-label">Recipient Email</div>
+            <input className="input-field" type="email" id="emailInput" placeholder="email@company.com" />
+          </div>
+          <div className="settlement-info">
+            <span className="settlement-icon">⏱</span>
+            <span>Transfers typically settle in <strong>up to 15 seconds</strong> via BIT Network.</span>
+          </div>
+          <button className="btn-primary" onClick={doSend}>Send ${usdPad.formatted} USD via BIT</button>
+        </div>
+      </div>
+
+      {/* ── RECEIVE USD DRAWER ── */}
+      <div className={`drawer ${openDrawer === "receive" ? "open" : ""}`}>
+        <div className="drawer-header">
+          <div className="drawer-title">Receive USD</div>
+          <div className="drawer-close" onClick={closeAll}>✕</div>
+        </div>
+        <div className="drawer-body">
+          <div className="reg-hero">
+            <div className="reg-icon">↙</div>
+            <div className="reg-hero-title">Register on the BIT Network</div>
+            <div className="reg-hero-sub">Link your email to your USD card so anyone on the network can send you money instantly.</div>
+          </div>
+          <div className="steps">
+            <div className="step"><div className="step-num">1</div><div className="step-text"><strong>Enter your email</strong>This becomes your BIT Network address. Anyone who knows it can send you USD.</div></div>
+            <div className="step"><div className="step-num">2</div><div className="step-text"><strong>We verify your email</strong>A quick check is run to ensure your address is ready to receive funds.</div></div>
+            <div className="step"><div className="step-num">3</div><div className="step-text"><strong>Your account is activated</strong>Transfers sent to your email auto-deposit to this USD card.</div></div>
+          </div>
+          <div>
+            <div className="field-label">Your Email Address</div>
+            <input className="input-field" type="email" placeholder="you@company.com" value={regEmail} onChange={(e) => { setRegEmail(e.target.value); resetRegStatus(); }} />
+          </div>
+          {regStatus && (
+            <div className={`status-box visible ${regStatus.type}`}>
+              <div className="status-ico">
+                {regStatus.type === "checking" ? <div className="spinner" /> : regStatus.type === "success" ? <span style={{ color: "var(--purple)" }}>✓</span> : <span style={{ color: "var(--error)" }}>✗</span>}
+              </div>
+              <div className="status-msg"><strong>{regStatus.title}</strong><span>{regStatus.sub}</span></div>
+            </div>
+          )}
+          {regCopyVisible && (
+            <div className="copy-box visible">
+              <div>
+                <div className="copy-label">BIT Network Account ID</div>
+                <div className="copy-row">
+                  <div className="copy-val">{accountId}</div>
+                  <CopyButton text={accountId} />
+                </div>
+              </div>
+              <div className="divider-line" />
+              <div>
+                <div className="copy-label">Auto-Deposit Tag</div>
+                <div className="copy-row">
+                  <div className="copy-val">{extTag}</div>
+                  <CopyButton text={extTag} />
+                </div>
+              </div>
+            </div>
+          )}
+          <button className="btn-primary" onClick={doRegister} disabled={regBtnDisabled}>{regBtnText}</button>
+        </div>
+      </div>
+
+      {/* ── CONVERT DRAWER ── */}
+      <div className={`drawer ${openDrawer === "convert" ? "open" : ""}`}>
+        <div className="drawer-header">
+          <div className="drawer-title">Convert {fc} to {tc}</div>
+          <div className="drawer-close" onClick={closeAll}>✕</div>
+        </div>
+        <div className="drawer-body">
+          <div className="rate-banner">
+            <div>
+              <div className="rate-label">Live Exchange Rate</div>
+              <div className="rate-sub">{rateUpdated}</div>
+            </div>
+            <div className="rate-value">{rateStr}</div>
+          </div>
+          <div className="convert-row">
+            <div className="convert-box" style={{ background: "var(--white)" }}>
+              <div className="convert-box-label">From · {fc}</div>
+              <input type="number" className="convert-input" value={convertAmt} min="0" onChange={(e) => setConvertAmt(e.target.value)} />
+              <div className="convert-box-cur">{fc === "CAD" ? "Balance: $5,001.86" : "Balance: $1,200.41"}</div>
+            </div>
+            <div className="swap-icon" onClick={swapConvert}>⇄</div>
+            <div className="convert-box">
+              <div className="convert-box-label">To · {tc}</div>
+              <div className="convert-box-val">${convertOut}</div>
+              <div className="convert-box-cur">{tc === "CAD" ? "Balance: $5,001.86" : "Balance: $1,200.41"}</div>
+            </div>
+          </div>
+          <div className="convert-summary">
+            <div className="summary-row"><span className="lbl">Exchange rate</span><span className="val">{rateStr}</span></div>
+            <div className="summary-divider" />
+            <div className="summary-row"><span className="lbl">You send</span><span className="val">${convertAmtNum.toFixed(2)} {fc}</span></div>
+            <div className="summary-row"><span className="lbl">You receive</span><span className="val">${convertOut} {tc}</span></div>
+          </div>
+          <button className="btn-primary" onClick={doConvert}>Convert to {tc}</button>
+        </div>
+      </div>
+
+      {/* ── CAD SEND DRAWER ── */}
+      <div className={`drawer ${openDrawer === "interacSend" ? "open" : ""}`}>
+        <div className="drawer-header">
+          <div className="drawer-title">Send Money</div>
+          <div className="drawer-close" onClick={closeAll}>✕</div>
+        </div>
+        <div className="drawer-body">
+          <div className="amount-box">
+            <div className="amount-label-sm">Amount</div>
+            <div className="amount-val"><span>$</span><span>{cadPad.formatted}</span></div>
+            <div className="amount-badge">🇨🇦 CAD</div>
+          </div>
+          <Numpad onPress={cadPad.press} onDel={cadPad.del} />
+          <div>
+            <div className="field-label">Recipient Email or Phone</div>
+            <input className="input-field" type="text" id="interacRecipient" placeholder="email@example.com or 416-555-0100" />
+          </div>
+          <div>
+            <div className="field-label">Message (optional)</div>
+            <input className="input-field" type="text" id="interacMessage" placeholder="e.g. Rent for March" />
+          </div>
+          <div className="settlement-info">
+            <span className="settlement-icon">⏱</span>
+            <span>Transfers typically settle in <strong>up to 30 minutes</strong> via Interac e-Transfer.</span>
+          </div>
+          <button className="btn-primary" onClick={doInteracSend}>Send ${cadPad.formatted} CAD via Interac</button>
+        </div>
+      </div>
+
+      {/* ── CAD REQUEST DRAWER ── */}
+      <div className={`drawer ${openDrawer === "interacReceive" ? "open" : ""}`}>
+        <div className="drawer-header">
+          <div className="drawer-title">Request Money</div>
+          <div className="drawer-close" onClick={closeAll}>✕</div>
+        </div>
+        <div className="drawer-body">
+          <div className="amount-box">
+            <div className="amount-label-sm">Amount</div>
+            <div className="amount-val"><span>$</span><span>{reqPad.formatted}</span></div>
+            <div className="amount-badge">🇨🇦 CAD</div>
+          </div>
+          <Numpad onPress={reqPad.press} onDel={reqPad.del} />
+          <div>
+            <div className="field-label">Request From (Email or Phone)</div>
+            <input className="input-field" type="text" id="reqRecipient" placeholder="email@example.com or 416-555-0100" />
+          </div>
+          <div>
+            <div className="field-label">Message (optional)</div>
+            <input className="input-field" type="text" id="reqMessage" placeholder="e.g. Split for dinner" />
+          </div>
+          <button className="btn-primary" onClick={doInteracRequest}>Request ${reqPad.formatted} CAD via Interac</button>
+        </div>
+      </div>
+
+      {/* ── CREATE USD MODAL ── */}
+      <div className={`modal-overlay ${modalOpen ? "open" : ""}`}>
+        <div className="modal">
+          <div className="modal-icon">💳</div>
+          <div className="modal-title">Open a USD Account</div>
+          <div className="modal-sub">Add a USD card to send money over the BIT Network and receive USD from anyone instantly.</div>
+          <div className="modal-perks">
+            <div className="modal-perk"><span className="perk-icon">↗</span> Send USD to anyone by email</div>
+            <div className="modal-perk"><span className="perk-icon">↙</span> Receive USD via BIT Network</div>
+            <div className="modal-perk"><span className="perk-icon">⇄</span> Convert your CAD balance to USD</div>
+          </div>
+          <div className="modal-actions">
+            <button className="btn-primary" onClick={activateUSD}>Create USD Account</button>
+            <button className="btn-secondary" onClick={() => setModalOpen(false)}>Maybe later</button>
+          </div>
+        </div>
+      </div>
+
+      {/* ══ MAIN CONTENT ══ */}
+      <main className="main">
+        <div>
+          <div className="greeting">Good morning, Rahmat 👋</div>
+          <div className="greeting-sub">Tuesday, March 24, 2026</div>
+        </div>
+
+        {/* ── Card Stack ── */}
+        <div className="card-stack-wrapper">
+          <div className="card-stack">
+            {/* Peek card (only when USD unlocked) */}
+            {usdUnlocked && (
+              <div
+                className={`card-peek ${cards[activeCard === 0 ? 1 : 0].color}`}
+                onClick={() => bringToFront(activeCard === 0 ? 1 : 0)}
+              >
+                <div className="peek-top">
+                  <div className="peek-left">
+                    <div className="peek-cur">{cards[activeCard === 0 ? 1 : 0].currency}</div>
+                    <div className="peek-bal">{cards[activeCard === 0 ? 1 : 0].bal}</div>
+                  </div>
+                  <MCLogo small />
+                </div>
+                <div className="peek-bottom">
+                  <div className="peek-num">••••{cards[activeCard === 0 ? 1 : 0].num.slice(-4)}</div>
+                </div>
+              </div>
+            )}
+
+            {/* Front card */}
+            <div className={`card-front ${card.color}`}>
+              <div className="card-row1">
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div className="card-badge">{card.currency}</div>
+                  <div className="card-bal-top">{card.bal}</div>
+                </div>
+                <MCLogo />
+              </div>
+              <div className="card-num-row">
+                <div className="card-num-text">{panVisible ? card.panReal : card.num}</div>
+                <button className="card-eye-btn" onClick={() => setPanVisible(!panVisible)}>
+                  {panVisible ? <EyeOffSvg /> : <EyeSvg />}
+                </button>
+                <CopyButton text={card.panReal} className="card-mini-btn" />
+              </div>
+              <div className="card-row3">
+                <div className="card-f">
+                  <div className="card-fl">Card Holder</div>
+                  <div className="card-fv">Rahmat Yousufi</div>
+                </div>
+                <div className="card-f center">
+                  <div className="card-fl">CVV</div>
+                  <div className="card-frow center">
+                    <div className="card-fv">{cvvVisible ? card.cvvReal : "•••"}</div>
+                    <button className="card-eye-btn" onClick={() => setCvvVisible(!cvvVisible)}>
+                      {cvvVisible ? <EyeOffSvg /> : <EyeSvg />}
+                    </button>
+                    <CopyButton text={card.cvvReal} className="card-mini-btn" />
+                  </div>
+                </div>
+                <div className="card-f right">
+                  <div className="card-fl">Expires</div>
+                  <div className="card-frow right">
+                    <div className="card-fv">{card.expiry}</div>
+                    <CopyButton text={card.expReal} className="card-mini-btn" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Create USD CTA ── */}
+        {!usdUnlocked && (
+          <div className="create-usd-cta" onClick={() => setModalOpen(true)}>
+            <div className="cta-icon">+</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--purple)" }}>Open a USD Account</div>
+              <div style={{ fontSize: 12, color: "var(--sub)", marginTop: 2 }}>Send money instantly via BIT Network</div>
+            </div>
+            <div style={{ fontSize: 16, color: "var(--purple)", opacity: 0.5, marginLeft: "auto" }}>→</div>
+          </div>
+        )}
+
+        {/* ── Quick Actions ── */}
+        <div className={`quick ${usdUnlocked ? "three" : "two"}`}>
+          <div className="q-btn" onClick={handleSend}><span className="q-icon">↗</span> Send</div>
+          <div className="q-btn" onClick={handleReceive}><span className="q-icon">↙</span> Receive</div>
+          {usdUnlocked && <div className="q-btn" onClick={openConvertDrawer}><span className="q-icon">⇄</span> Convert</div>}
+        </div>
+
+        {/* ── Transactions ── */}
+        <div className="panel">
+          <div className="panel-hd">
+            <div className="panel-title">{txTitle}</div>
+          </div>
+          <div className="tx-list">
+            {txs.map((t, i) => (
+              <div className="tx" key={i}>
+                <div className="tx-info">
+                  <div className="tx-name">{t.name}</div>
+                  <div className="tx-date">{t.date}</div>
+                </div>
+                <div className="tx-right">
+                  <div className="tx-amt">{t.amt}</div>
+                  <div className="tx-stat">{t.stat}</div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </main>
-    </div>
+
+      <Toast message={toast} />
+    </>
   );
 }
