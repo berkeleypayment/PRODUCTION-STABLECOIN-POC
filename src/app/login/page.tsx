@@ -110,24 +110,6 @@ export default function LoginPage() {
         </button>
       </form>
 
-      <div
-        style={{
-          marginTop: 12,
-          padding: "14px",
-          background: "var(--bg)",
-          border: "1px solid var(--border)",
-          borderRadius: "var(--radius)",
-          fontSize: 12,
-          color: "var(--sub)",
-          lineHeight: 1.6,
-        }}
-      >
-        <strong style={{ color: "var(--text)", fontSize: 12 }}>Demo accounts</strong>
-        <br />
-        rahmat@berkeleypayment.com / password123
-        <br />
-        sarah@berkeleypayment.com / password123
-      </div>
     </main>
   );
 }
