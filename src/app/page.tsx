@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 /* ── SVG icons ── */
 const CopySvg = () => (
@@ -102,10 +103,20 @@ function MCLogo({ small }: { small?: boolean }) {
 
 /* ══════════════════════════════════════════════════════════════ */
 export default function Home() {
+  const router = useRouter();
+  const [user, setUser] = useState<{ id: string; name: string; email: string; avatarInitials: string } | null>(null);
   const [activeCard, setActiveCard] = useState(0);
   const [usdUnlocked, setUsdUnlocked] = useState(false);
   const [panVisible, setPanVisible] = useState(false);
   const [cvvVisible, setCvvVisible] = useState(false);
+
+  // Fetch user on mount
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then(setUser)
+      .catch(() => router.push("/login"));
+  }, [router]);
 
   // Drawers
   const [openDrawer, setOpenDrawer] = useState<string | null>(null);
@@ -304,8 +315,34 @@ export default function Home() {
     else setOpenDrawer("receive");
   };
 
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/login");
+  };
+
+  if (!user) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
+        <div className="spinner" style={{ width: 24, height: 24 }} />
+      </div>
+    );
+  }
+
+  const firstName = user.name.split(" ")[0];
+
   return (
     <>
+      {/* Topbar */}
+      <header className="topbar">
+        <div className="logo">
+          <div className="logo-mark">B</div>
+          Berkeley Payments
+        </div>
+        <div className="avatar" onClick={handleLogout} style={{ cursor: "pointer" }} title="Click to sign out">
+          {user.avatarInitials}
+        </div>
+      </header>
+
       {/* Overlay */}
       <div className={`overlay ${openDrawer ? "open" : ""}`} onClick={closeAll} />
 
@@ -498,7 +535,7 @@ export default function Home() {
       {/* ══ MAIN CONTENT ══ */}
       <main className="main">
         <div>
-          <div className="greeting">Good morning, Rahmat 👋</div>
+          <div className="greeting">Good morning, {firstName} 👋</div>
           <div className="greeting-sub">Tuesday, March 24, 2026</div>
         </div>
 
@@ -543,7 +580,7 @@ export default function Home() {
               <div className="card-row3">
                 <div className="card-f">
                   <div className="card-fl">Card Holder</div>
-                  <div className="card-fv">Rahmat Yousufi</div>
+                  <div className="card-fv">{user.name}</div>
                 </div>
                 <div className="card-f center">
                   <div className="card-fl">CVV</div>

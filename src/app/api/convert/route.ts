@@ -2,9 +2,15 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { transactions, cards } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
+import { getSession } from "@/lib/auth";
 
 // POST /api/convert — convert between CAD and USD
 export async function POST(request: Request) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
   const body = await request.json();
   const { fromCardId, toCardId, amount, rate, fromCurrency, toCurrency } = body;
 
@@ -20,9 +26,9 @@ export async function POST(request: Request) {
 
   const convertedAmount = (numAmount * numRate).toFixed(2);
 
-  // Check source balance
+  // Check source balance and ownership
   const [fromCard] = await db.select().from(cards).where(eq(cards.id, fromCardId));
-  if (!fromCard || parseFloat(fromCard.balance) < numAmount) {
+  if (!fromCard || fromCard.userId !== session.userId || parseFloat(fromCard.balance) < numAmount) {
     return NextResponse.json({ error: "Insufficient balance" }, { status: 400 });
   }
 

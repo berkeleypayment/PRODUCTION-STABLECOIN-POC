@@ -13,16 +13,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>
-        <header className="topbar">
-          <div className="logo">
-            <div className="logo-mark">B</div>
-            Berkeley Payments
-          </div>
-          <div className="avatar">RY</div>
-        </header>
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

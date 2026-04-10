@@ -2,9 +2,15 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { transactions, cards } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
+import { getSession } from "@/lib/auth";
 
 // POST /api/send — send money (BIT or Interac)
 export async function POST(request: Request) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
   const body = await request.json();
   const { cardId, amount, currency, recipientEmail, type, message } = body;
 
@@ -17,9 +23,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Amount must be positive" }, { status: 400 });
   }
 
-  // Check balance
+  // Check balance and ownership
   const [card] = await db.select().from(cards).where(eq(cards.id, cardId));
-  if (!card) {
+  if (!card || card.userId !== session.userId) {
     return NextResponse.json({ error: "Card not found" }, { status: 404 });
   }
   if (parseFloat(card.balance) < numAmount) {

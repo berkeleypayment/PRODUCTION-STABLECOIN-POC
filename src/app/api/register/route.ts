@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { bitRegistrations, users, cards } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { bitRegistrations, cards } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { getSession } from "@/lib/auth";
 
 // POST /api/register — register email on BIT Network
 export async function POST(request: Request) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
   const body = await request.json();
   const { email, cardId } = body;
 
@@ -26,9 +32,9 @@ export async function POST(request: Request) {
     );
   }
 
-  // Get card to find user
+  // Get card and verify ownership
   const [card] = await db.select().from(cards).where(eq(cards.id, cardId));
-  if (!card) {
+  if (!card || card.userId !== session.userId) {
     return NextResponse.json({ error: "Card not found" }, { status: 404 });
   }
 
