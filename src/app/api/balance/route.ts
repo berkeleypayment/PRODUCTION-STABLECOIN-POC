@@ -24,10 +24,10 @@ export async function GET(request: NextRequest) {
 
   // Fetch balance from Pungle
   const res = await fetch(
-    `${process.env.PUNGLE_API_URL}/card_issuing/accounts/${card.accountId}/balance`,
+    `${process.env.BERKELEY_BASE_URL}/api/v1/card_issuing/accounts/${card.accountId}/balance`,
     {
       headers: {
-        Authorization: `Bearer ${process.env.PUNGLE_AUTH_TOKEN}`,
+        Authorization: `Bearer ${process.env.BERKELEY_PRIVATE_TOKEN}`,
       },
     }
   );
