@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, numeric, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, uuid, varchar, timestamp, pgEnum, numeric } from "drizzle-orm/pg-core";
 
 /* ── Enums ── */
 export const currencyEnum = pgEnum("currency", ["CAD", "USD"]);
@@ -26,11 +26,10 @@ export const users = pgTable("users", {
 export const cards = pgTable("cards", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id").references(() => users.id).notNull(),
+  cardholderId: varchar("cardholder_id", { length: 32 }).notNull(),
+  accountId: varchar("account_id", { length: 32 }).notNull(),
   currency: currencyEnum("currency").notNull(),
-  balance: numeric("balance", { precision: 14, scale: 2 }).notNull().default("0.00"),
   panLast4: varchar("pan_last4", { length: 4 }).notNull(),
-  panFull: varchar("pan_full", { length: 19 }).notNull(),
-  cvv: varchar("cvv", { length: 4 }).notNull(),
   expiry: varchar("expiry", { length: 5 }).notNull(),
   color: varchar("color", { length: 32 }).notNull(),
   active: varchar("active", { length: 5 }).notNull().default("true"),

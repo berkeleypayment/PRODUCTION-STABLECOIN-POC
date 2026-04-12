@@ -24,24 +24,17 @@ const EyeOffSvg = () => (
 );
 const CheckSvg = () => <span>✓</span>;
 
-/* ── Mock data ── */
-const cards = [
-  { currency: "🇨🇦 CAD", num: "★★★★  ★★★★  ★★★★  3854", panReal: "4242 4242 4242 3854", bal: "$5,001.86", expiry: "11/27", expReal: "11/27", cvvReal: "782", color: "card-color-pink" },
-  { currency: "🇺🇸 USD", num: "★★★★  ★★★★  ★★★★  5888", panReal: "4242 4242 4242 5888", bal: "$1,200.41", expiry: "03/29", expReal: "03/29", cvvReal: "394", color: "card-color-purple" },
-];
-
-const cadTxs = [
-  { name: "Interac e-Transfer → john@example.com", date: "Mar 24, 2026 · 09:30 AM", amt: "-$450.00 CAD", stat: "Settled" },
-  { name: "Interac e-Transfer → My Account", date: "Mar 22, 2026 · 02:10 PM", amt: "+$1,500.00 CAD", stat: "Settled" },
-  { name: "Interac e-Transfer → sara@example.com", date: "Mar 18, 2026 · 11:45 AM", amt: "-$200.00 CAD", stat: "Settled" },
-  { name: "Interac e-Transfer → My Account", date: "Mar 14, 2026 · 08:00 AM", amt: "+$3,000.00 CAD", stat: "Settled" },
-];
-const usdTxs = [
-  { name: "BIT Transfer → emailuser2@berkeley.com", date: "Mar 24, 2026 · 10:14 AM", amt: "-$500.00 USD", stat: "Settled" },
-  { name: "BIT Transfer → My Account", date: "Mar 23, 2026 · 02:58 PM", amt: "+$1,700.41 USD", stat: "Settled" },
-  { name: "CAD → USD Conversion", date: "Mar 21, 2026 · 09:00 AM", amt: "$500 CAD → $353.05 USD", stat: "Settled" },
-  { name: "BIT Transfer → emailuser1@berkeley.com", date: "Mar 20, 2026 · 04:30 PM", amt: "-$250.00 USD", stat: "Settled" },
-];
+/* ── Types ── */
+interface CardData {
+  id: string;
+  currency: "CAD" | "USD";
+  panLast4: string;
+  expiry: string;
+  color: string;
+  active: string;
+  accountId: string;
+  cardholderId: string;
+}
 
 /* ── Helpers ── */
 function fmtRaw(r: string) {
@@ -105,18 +98,54 @@ function MCLogo({ small }: { small?: boolean }) {
 export default function Home() {
   const router = useRouter();
   const [user, setUser] = useState<{ id: string; name: string; email: string; avatarInitials: string } | null>(null);
+  const [userCards, setUserCards] = useState<CardData[]>([]);
+  const [balances, setBalances] = useState<Record<string, string>>({});
   const [activeCard, setActiveCard] = useState(0);
   const [usdUnlocked, setUsdUnlocked] = useState(false);
   const [panVisible, setPanVisible] = useState(false);
   const [cvvVisible, setCvvVisible] = useState(false);
 
-  // Fetch user on mount
+  // Fetch user and cards on mount
   useEffect(() => {
     fetch("/api/auth/me")
       .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then(setUser)
+      .then((u) => {
+        setUser(u);
+        // Fetch cards
+        return fetch("/api/cards").then((r) => r.json());
+      })
+      .then((cards: CardData[]) => {
+        setUserCards(cards);
+        const hasActiveUsd = cards.some((c) => c.currency === "USD" && c.active === "true");
+        setUsdUnlocked(hasActiveUsd);
+        // Fetch balance for each card
+        cards.forEach((c) => {
+          fetch(`/api/balance?cardId=${c.id}`)
+            .then((r) => r.json())
+            .then((b) => {
+              if (b.availableBalance !== undefined) {
+                setBalances((prev) => ({ ...prev, [c.id]: b.availableBalance }));
+              }
+            })
+            .catch(() => {});
+        });
+      })
       .catch(() => router.push("/login"));
   }, [router]);
+
+  // Transactions
+  const [txs, setTxs] = useState<{ id: string; description: string; amount: string; currency: string; status: string; createdAt: string }[]>([]);
+
+  // Fetch transactions when active card changes
+  useEffect(() => {
+    if (!userCards.length) return;
+    const c = userCards[activeCard];
+    if (!c) return;
+    fetch(`/api/transactions?cardId=${c.id}`)
+      .then((r) => r.json())
+      .then((data) => setTxs(Array.isArray(data) ? data : []))
+      .catch(() => setTxs([]));
+  }, [activeCard, userCards]);
 
   // Drawers
   const [openDrawer, setOpenDrawer] = useState<string | null>(null);
@@ -296,9 +325,12 @@ export default function Home() {
   }, [registered]);
 
   // ── Derived values ──
-  const card = cards[activeCard];
-  const txs = activeCard === 0 ? cadTxs : usdTxs;
-  const txTitle = activeCard === 0 ? "CAD Transactions" : "USD Transactions";
+  const card = userCards[activeCard] || null;
+  const cardCurrency = card?.currency || "CAD";
+  const cardFlag = cardCurrency === "CAD" ? "🇨🇦" : "🇺🇸";
+  const cardBal = card ? (balances[card.id] !== undefined ? `$${parseFloat(balances[card.id]).toLocaleString("en-US", { minimumFractionDigits: 2 })}` : "Loading…") : "—";
+  const maskedNum = card ? `★★★★  ★★★★  ★★★★  ${card.panLast4}` : "";
+  const txTitle = card ? `${cardCurrency} Transactions` : "Transactions";
   const rate = liveRate || (cadToUsd ? 0.7061 : 1.417);
   const convertAmtNum = parseFloat(convertAmt) || 0;
   const convertOut = (convertAmtNum * rate).toFixed(2);
@@ -540,69 +572,60 @@ export default function Home() {
         </div>
 
         {/* ── Card Stack ── */}
+        {card && (
         <div className="card-stack-wrapper">
           <div className="card-stack">
-            {/* Peek card (only when USD unlocked) */}
-            {usdUnlocked && (
-              <div
-                className={`card-peek ${cards[activeCard === 0 ? 1 : 0].color}`}
-                onClick={() => bringToFront(activeCard === 0 ? 1 : 0)}
-              >
-                <div className="peek-top">
-                  <div className="peek-left">
-                    <div className="peek-cur">{cards[activeCard === 0 ? 1 : 0].currency}</div>
-                    <div className="peek-bal">{cards[activeCard === 0 ? 1 : 0].bal}</div>
+            {/* Peek card (only when multiple cards) */}
+            {usdUnlocked && userCards.length > 1 && (() => {
+              const otherIdx = activeCard === 0 ? 1 : 0;
+              const other = userCards[otherIdx];
+              if (!other) return null;
+              const otherFlag = other.currency === "CAD" ? "🇨🇦" : "🇺🇸";
+              const otherBal = balances[other.id] !== undefined ? `$${parseFloat(balances[other.id]).toLocaleString("en-US", { minimumFractionDigits: 2 })}` : "…";
+              return (
+                <div className={`card-peek ${other.color}`} onClick={() => bringToFront(otherIdx)}>
+                  <div className="peek-top">
+                    <div className="peek-left">
+                      <div className="peek-cur">{otherFlag} {other.currency}</div>
+                      <div className="peek-bal">{otherBal}</div>
+                    </div>
+                    <MCLogo small />
                   </div>
-                  <MCLogo small />
+                  <div className="peek-bottom">
+                    <div className="peek-num">••••{other.panLast4}</div>
+                  </div>
                 </div>
-                <div className="peek-bottom">
-                  <div className="peek-num">••••{cards[activeCard === 0 ? 1 : 0].num.slice(-4)}</div>
-                </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Front card */}
             <div className={`card-front ${card.color}`}>
               <div className="card-row1">
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div className="card-badge">{card.currency}</div>
-                  <div className="card-bal-top">{card.bal}</div>
+                  <div className="card-badge">{cardFlag} {cardCurrency}</div>
+                  <div className="card-bal-top">{cardBal}</div>
                 </div>
                 <MCLogo />
               </div>
               <div className="card-num-row">
-                <div className="card-num-text">{panVisible ? card.panReal : card.num}</div>
-                <button className="card-eye-btn" onClick={() => setPanVisible(!panVisible)}>
-                  {panVisible ? <EyeOffSvg /> : <EyeSvg />}
-                </button>
-                <CopyButton text={card.panReal} className="card-mini-btn" />
+                <div className="card-num-text">{maskedNum}</div>
               </div>
               <div className="card-row3">
                 <div className="card-f">
                   <div className="card-fl">Card Holder</div>
                   <div className="card-fv">{user.name}</div>
                 </div>
-                <div className="card-f center">
-                  <div className="card-fl">CVV</div>
-                  <div className="card-frow center">
-                    <div className="card-fv">{cvvVisible ? card.cvvReal : "•••"}</div>
-                    <button className="card-eye-btn" onClick={() => setCvvVisible(!cvvVisible)}>
-                      {cvvVisible ? <EyeOffSvg /> : <EyeSvg />}
-                    </button>
-                    <CopyButton text={card.cvvReal} className="card-mini-btn" />
-                  </div>
-                </div>
                 <div className="card-f right">
                   <div className="card-fl">Expires</div>
                   <div className="card-frow right">
                     <div className="card-fv">{card.expiry}</div>
-                    <CopyButton text={card.expReal} className="card-mini-btn" />
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
+        )}
 
         {/* ── Create USD CTA ── */}
         {!usdUnlocked && (
@@ -629,15 +652,18 @@ export default function Home() {
             <div className="panel-title">{txTitle}</div>
           </div>
           <div className="tx-list">
-            {txs.map((t, i) => (
-              <div className="tx" key={i}>
+            {txs.length === 0 && (
+              <div style={{ padding: "20px 8px", fontSize: 13, color: "var(--muted)", textAlign: "center" }}>No transactions yet</div>
+            )}
+            {txs.map((t) => (
+              <div className="tx" key={t.id}>
                 <div className="tx-info">
-                  <div className="tx-name">{t.name}</div>
-                  <div className="tx-date">{t.date}</div>
+                  <div className="tx-name">{t.description}</div>
+                  <div className="tx-date">{new Date(t.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} · {new Date(t.createdAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}</div>
                 </div>
                 <div className="tx-right">
-                  <div className="tx-amt">{t.amt}</div>
-                  <div className="tx-stat">{t.stat}</div>
+                  <div className="tx-amt">{parseFloat(t.amount) >= 0 ? "+" : ""}${Math.abs(parseFloat(t.amount)).toFixed(2)} {t.currency}</div>
+                  <div className="tx-stat">{t.status.charAt(0).toUpperCase() + t.status.slice(1)}</div>
                 </div>
               </div>
             ))}

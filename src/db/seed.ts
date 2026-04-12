@@ -7,8 +7,100 @@ const DATABASE_URL = process.env.DATABASE_URL!;
 const sql = neon(DATABASE_URL);
 const db = drizzle(sql);
 
+const DEMO_USERS = [
+  { name: "Rahmat Yousufi", email: "rahmat@berkeleypayment.com", initials: "RY" },
+  { name: "Sarah Chen", email: "sarah@berkeleypayment.com", initials: "SC" },
+  { name: "James Wilson", email: "james@berkeleypayment.com", initials: "JW" },
+  { name: "Emily Zhang", email: "emily@berkeleypayment.com", initials: "EZ" },
+  { name: "Michael Torres", email: "michael@berkeleypayment.com", initials: "MT" },
+  { name: "Priya Patel", email: "priya@berkeleypayment.com", initials: "PP" },
+  { name: "David Kim", email: "david@berkeleypayment.com", initials: "DK" },
+  { name: "Olivia Brown", email: "olivia@berkeleypayment.com", initials: "OB" },
+  { name: "Carlos Rivera", email: "carlos@berkeleypayment.com", initials: "CR" },
+  { name: "Aisha Mohammed", email: "aisha@berkeleypayment.com", initials: "AM" },
+  { name: "Ryan O'Connor", email: "ryan@berkeleypayment.com", initials: "RO" },
+  { name: "Sophie Martin", email: "sophie@berkeleypayment.com", initials: "SM" },
+  { name: "Liam Nguyen", email: "liam@berkeleypayment.com", initials: "LN" },
+  { name: "Nina Johansson", email: "nina@berkeleypayment.com", initials: "NJ" },
+  { name: "Alex Petrov", email: "alex@berkeleypayment.com", initials: "AP" },
+  { name: "Maria Garcia", email: "maria@berkeleypayment.com", initials: "MG" },
+  { name: "Hassan Ali", email: "hassan@berkeleypayment.com", initials: "HA" },
+  { name: "Julia Schmidt", email: "julia@berkeleypayment.com", initials: "JS" },
+  { name: "Kevin Lee", email: "kevin@berkeleypayment.com", initials: "KL" },
+  { name: "Rachel Green", email: "rachel@berkeleypayment.com", initials: "RG" },
+  { name: "Omar Farouk", email: "omar@berkeleypayment.com", initials: "OF" },
+  { name: "Lisa Wang", email: "lisa@berkeleypayment.com", initials: "LW" },
+  { name: "Thomas Anderson", email: "thomas@berkeleypayment.com", initials: "TA" },
+  { name: "Fatima Zahra", email: "fatima@berkeleypayment.com", initials: "FZ" },
+  { name: "Ben Carter", email: "ben@berkeleypayment.com", initials: "BC" },
+  { name: "Yuki Tanaka", email: "yuki@berkeleypayment.com", initials: "YT" },
+  { name: "Daniel Murphy", email: "daniel@berkeleypayment.com", initials: "DM" },
+  { name: "Ava Mitchell", email: "ava@berkeleypayment.com", initials: "AV" },
+  { name: "Raj Sharma", email: "raj@berkeleypayment.com", initials: "RS" },
+  { name: "Emma Thompson", email: "emma@berkeleypayment.com", initials: "ET" },
+  { name: "Lucas Silva", email: "lucas@berkeleypayment.com", initials: "LS" },
+  { name: "Chloe Dubois", email: "chloe@berkeleypayment.com", initials: "CD" },
+  { name: "Nathan Park", email: "nathan@berkeleypayment.com", initials: "NP" },
+  { name: "Isabella Rossi", email: "isabella@berkeleypayment.com", initials: "IR" },
+  { name: "Viktor Kozlov", email: "viktor@berkeleypayment.com", initials: "VK" },
+  { name: "Zara Khan", email: "zara@berkeleypayment.com", initials: "ZK" },
+  { name: "Chris Evans", email: "chris@berkeleypayment.com", initials: "CE" },
+  { name: "Mia Johnson", email: "mia@berkeleypayment.com", initials: "MJ" },
+  { name: "Ahmed Hassan", email: "ahmed@berkeleypayment.com", initials: "AH" },
+  { name: "Grace Liu", email: "grace@berkeleypayment.com", initials: "GL" },
+  { name: "Patrick O'Brien", email: "patrick@berkeleypayment.com", initials: "PO" },
+  { name: "Diana Popescu", email: "diana@berkeleypayment.com", initials: "DP" },
+  { name: "Ethan Wright", email: "ethan@berkeleypayment.com", initials: "EW" },
+  { name: "Sakura Ito", email: "sakura@berkeleypayment.com", initials: "SI" },
+  { name: "Marcus Reed", email: "marcus@berkeleypayment.com", initials: "MR" },
+  { name: "Leila Ahmadi", email: "leila@berkeleypayment.com", initials: "LA" },
+  { name: "Jack Robinson", email: "jack@berkeleypayment.com", initials: "JR" },
+  { name: "Nadia Volkov", email: "nadia@berkeleypayment.com", initials: "NV" },
+  { name: "Sam Taylor", email: "sam@berkeleypayment.com", initials: "ST" },
+  { name: "Rosa Hernandez", email: "rosa@berkeleypayment.com", initials: "RH" },
+];
+
+function rand(min: number, max: number) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function randPan4() {
+  return String(rand(1000, 9999));
+}
+
+
+function randExpiry() {
+  const m = String(rand(1, 12)).padStart(2, "0");
+  const y = String(rand(27, 30));
+  return `${m}/${y}`;
+}
+
+
+function randDate(daysAgo: number) {
+  const d = new Date();
+  d.setDate(d.getDate() - rand(1, daysAgo));
+  d.setHours(rand(8, 17), rand(0, 59), 0, 0);
+  return d;
+}
+
+const TX_TEMPLATES_CAD = [
+  { type: "interac_send" as const, descFn: (e: string) => `Interac e-Transfer → ${e}`, sign: "-" },
+  { type: "interac_receive" as const, descFn: () => "Interac e-Transfer → My Account", sign: "+" },
+];
+
+const TX_TEMPLATES_USD = [
+  { type: "bit_send" as const, descFn: (e: string) => `BIT Transfer → ${e}`, sign: "-" },
+  { type: "bit_receive" as const, descFn: () => "BIT Transfer → My Account", sign: "+" },
+];
+
+const RECIPIENT_EMAILS = [
+  "john@example.com", "sara@example.com", "mike@example.com",
+  "lisa@example.com", "vendor@berkeley.com", "partner@berkeley.com",
+  "supplier@example.com", "client@example.com",
+];
+
 async function seed() {
-  console.log("Seeding database...");
+  console.log("Seeding database with 50 users...");
 
   // Clear existing data
   await db.delete(bitRegistrations);
@@ -16,122 +108,90 @@ async function seed() {
   await db.delete(cards);
   await db.delete(users);
 
-  // ── User 1: Rahmat ──
-  const [user1] = await db
-    .insert(users)
-    .values({
-      name: "Rahmat Yousufi",
-      email: "rahmat@berkeleypayment.com",
-      passwordHash: hashSync("password123", 10),
-      avatarInitials: "RY",
-    })
-    .returning();
-  console.log("Created user 1:", user1.name, user1.id);
+  const passwordHash = hashSync("password123", 10);
 
-  const [cad1] = await db
-    .insert(cards)
-    .values({
-      userId: user1.id,
-      currency: "CAD",
-      balance: "5001.86",
-      panLast4: "3854",
-      panFull: "4242 4242 4242 3854",
-      cvv: "782",
-      expiry: "11/27",
-      color: "card-color-pink",
-      active: "true",
-    })
-    .returning();
+  for (let i = 0; i < DEMO_USERS.length; i++) {
+    const u = DEMO_USERS[i];
 
-  const [usd1] = await db
-    .insert(cards)
-    .values({
-      userId: user1.id,
-      currency: "USD",
-      balance: "1200.41",
-      panLast4: "5888",
-      panFull: "4242 4242 4242 5888",
-      cvv: "394",
-      expiry: "03/29",
-      color: "card-color-purple",
-      active: "false",
-    })
-    .returning();
+    const [user] = await db
+      .insert(users)
+      .values({ name: u.name, email: u.email, passwordHash, avatarInitials: u.initials })
+      .returning();
 
-  await db.insert(transactions).values([
-    { cardId: cad1.id, type: "interac_send", amount: "-450.00", currency: "CAD", description: "Interac e-Transfer → john@example.com", recipientEmail: "john@example.com", status: "settled", createdAt: new Date("2026-03-24T09:30:00Z") },
-    { cardId: cad1.id, type: "interac_receive", amount: "1500.00", currency: "CAD", description: "Interac e-Transfer → My Account", status: "settled", createdAt: new Date("2026-03-22T14:10:00Z") },
-    { cardId: cad1.id, type: "interac_send", amount: "-200.00", currency: "CAD", description: "Interac e-Transfer → sara@example.com", recipientEmail: "sara@example.com", status: "settled", createdAt: new Date("2026-03-18T11:45:00Z") },
-    { cardId: cad1.id, type: "interac_receive", amount: "3000.00", currency: "CAD", description: "Interac e-Transfer → My Account", status: "settled", createdAt: new Date("2026-03-14T08:00:00Z") },
-  ]);
+    const cadLast4 = randPan4();
+    const usdLast4 = randPan4();
 
-  await db.insert(transactions).values([
-    { cardId: usd1.id, type: "bit_send", amount: "-500.00", currency: "USD", description: "BIT Transfer → emailuser2@berkeley.com", recipientEmail: "emailuser2@berkeley.com", status: "settled", createdAt: new Date("2026-03-24T10:14:00Z") },
-    { cardId: usd1.id, type: "bit_receive", amount: "1700.41", currency: "USD", description: "BIT Transfer → My Account", status: "settled", createdAt: new Date("2026-03-23T14:58:00Z") },
-    { cardId: usd1.id, type: "conversion", amount: "353.05", currency: "USD", description: "CAD → USD Conversion", metadata: "$500 CAD → $353.05 USD", status: "settled", createdAt: new Date("2026-03-21T09:00:00Z") },
-    { cardId: usd1.id, type: "bit_send", amount: "-250.00", currency: "USD", description: "BIT Transfer → emailuser1@berkeley.com", recipientEmail: "emailuser1@berkeley.com", status: "settled", createdAt: new Date("2026-03-20T16:30:00Z") },
-  ]);
+    const [cadCard] = await db
+      .insert(cards)
+      .values({
+        userId: user.id,
+        cardholderId: "0",
+        accountId: "0",
+        currency: "CAD",
+        panLast4: cadLast4,
+        expiry: randExpiry(),
+        color: "card-color-pink",
+        active: "true",
+      })
+      .returning();
 
-  // ── User 2: Sarah ──
-  const [user2] = await db
-    .insert(users)
-    .values({
-      name: "Sarah Chen",
-      email: "sarah@berkeleypayment.com",
-      passwordHash: hashSync("password123", 10),
-      avatarInitials: "SC",
-    })
-    .returning();
-  console.log("Created user 2:", user2.name, user2.id);
+    const [usdCard] = await db
+      .insert(cards)
+      .values({
+        userId: user.id,
+        cardholderId: "0",
+        accountId: "0",
+        currency: "USD",
+        panLast4: usdLast4,
+        expiry: randExpiry(),
+        color: "card-color-purple",
+        active: "false",
+      })
+      .returning();
 
-  const [cad2] = await db
-    .insert(cards)
-    .values({
-      userId: user2.id,
-      currency: "CAD",
-      balance: "8250.00",
-      panLast4: "7712",
-      panFull: "4242 4242 4242 7712",
-      cvv: "501",
-      expiry: "06/28",
-      color: "card-color-pink",
-      active: "true",
-    })
-    .returning();
+    // 4 CAD transactions
+    const cadTxs = [];
+    for (let t = 0; t < 4; t++) {
+      const tmpl = TX_TEMPLATES_CAD[t % 2];
+      const amt = rand(100, 2000);
+      const recip = RECIPIENT_EMAILS[rand(0, RECIPIENT_EMAILS.length - 1)];
+      cadTxs.push({
+        cardId: cadCard.id,
+        type: tmpl.type,
+        amount: `${tmpl.sign}${amt}.00`,
+        currency: "CAD" as const,
+        description: tmpl.descFn(recip),
+        recipientEmail: tmpl.sign === "-" ? recip : null,
+        status: "settled" as const,
+        createdAt: randDate(30),
+      });
+    }
+    await db.insert(transactions).values(cadTxs);
 
-  const [usd2] = await db
-    .insert(cards)
-    .values({
-      userId: user2.id,
-      currency: "USD",
-      balance: "3450.00",
-      panLast4: "9301",
-      panFull: "4242 4242 4242 9301",
-      cvv: "628",
-      expiry: "09/28",
-      color: "card-color-purple",
-      active: "false",
-    })
-    .returning();
+    // 4 USD transactions
+    const usdTxs = [];
+    for (let t = 0; t < 4; t++) {
+      const tmpl = TX_TEMPLATES_USD[t % 2];
+      const amt = rand(100, 1500);
+      const recip = RECIPIENT_EMAILS[rand(0, RECIPIENT_EMAILS.length - 1)];
+      usdTxs.push({
+        cardId: usdCard.id,
+        type: tmpl.type,
+        amount: `${tmpl.sign}${amt}.00`,
+        currency: "USD" as const,
+        description: tmpl.descFn(recip),
+        recipientEmail: tmpl.sign === "-" ? recip : null,
+        status: "settled" as const,
+        createdAt: randDate(30),
+      });
+    }
+    await db.insert(transactions).values(usdTxs);
 
-  await db.insert(transactions).values([
-    { cardId: cad2.id, type: "interac_send", amount: "-750.00", currency: "CAD", description: "Interac e-Transfer → mike@example.com", recipientEmail: "mike@example.com", status: "settled", createdAt: new Date("2026-03-23T10:15:00Z") },
-    { cardId: cad2.id, type: "interac_receive", amount: "5000.00", currency: "CAD", description: "Interac e-Transfer → My Account", status: "settled", createdAt: new Date("2026-03-20T09:00:00Z") },
-    { cardId: cad2.id, type: "interac_send", amount: "-1200.00", currency: "CAD", description: "Interac e-Transfer → lisa@example.com", recipientEmail: "lisa@example.com", status: "settled", createdAt: new Date("2026-03-17T14:30:00Z") },
-    { cardId: cad2.id, type: "interac_receive", amount: "2000.00", currency: "CAD", description: "Interac e-Transfer → My Account", status: "settled", createdAt: new Date("2026-03-12T11:00:00Z") },
-  ]);
+    console.log(`  [${i + 1}/50] ${u.name} (${u.email})`);
+  }
 
-  await db.insert(transactions).values([
-    { cardId: usd2.id, type: "bit_send", amount: "-800.00", currency: "USD", description: "BIT Transfer → vendor@berkeley.com", recipientEmail: "vendor@berkeley.com", status: "settled", createdAt: new Date("2026-03-22T16:45:00Z") },
-    { cardId: usd2.id, type: "bit_receive", amount: "2500.00", currency: "USD", description: "BIT Transfer → My Account", status: "settled", createdAt: new Date("2026-03-19T13:20:00Z") },
-    { cardId: usd2.id, type: "conversion", amount: "706.10", currency: "USD", description: "CAD → USD Conversion", metadata: "$1000 CAD → $706.10 USD", status: "settled", createdAt: new Date("2026-03-15T10:00:00Z") },
-    { cardId: usd2.id, type: "bit_send", amount: "-150.00", currency: "USD", description: "BIT Transfer → partner@berkeley.com", recipientEmail: "partner@berkeley.com", status: "settled", createdAt: new Date("2026-03-13T08:30:00Z") },
-  ]);
-
-  console.log("Seeded 16 transactions (8 per user)");
-  console.log("\nLogin credentials:");
-  console.log("  rahmat@berkeleypayment.com / password123");
-  console.log("  sarah@berkeleypayment.com  / password123");
+  console.log("\nSeeded 50 users, 100 cards, 400 transactions");
+  console.log("All passwords: password123");
   console.log("Done!");
 }
 
