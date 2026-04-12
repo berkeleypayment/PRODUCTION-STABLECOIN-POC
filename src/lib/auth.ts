@@ -6,18 +6,19 @@ const JWT_SECRET = new TextEncoder().encode(
 );
 
 const COOKIE_NAME = "session";
+const SESSION_MAX_AGE = 60 * 30; // 30 minutes
 
 export async function createSession(userId: string) {
   const token = await new SignJWT({ userId })
     .setProtectedHeader({ alg: "HS256" })
-    .setExpirationTime("7d")
+    .setExpirationTime("30m")
     .sign(JWT_SECRET);
 
   (await cookies()).set(COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    maxAge: SESSION_MAX_AGE,
     path: "/",
   });
 
@@ -30,7 +31,12 @@ export async function getSession(): Promise<{ userId: string } | null> {
 
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
-    return { userId: payload.userId as string };
+    const userId = payload.userId as string;
+
+    // Refresh the session on each request (sliding window)
+    await createSession(userId);
+
+    return { userId };
   } catch {
     return null;
   }
