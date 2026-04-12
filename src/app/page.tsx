@@ -104,8 +104,10 @@ export default function Home() {
   const [usdUnlocked, setUsdUnlocked] = useState(false);
   const [panVisible, setPanVisible] = useState(false);
   const [cvvVisible, setCvvVisible] = useState(false);
-  const [sensitiveData, setSensitiveData] = useState<Record<string, { cardNumber: string; cvv: string }>>({});
+  const [revealedPan, setRevealedPan] = useState<string | null>(null);
+  const [revealedCvv, setRevealedCvv] = useState<string | null>(null);
   const [sensitiveLoading, setSensitiveLoading] = useState(false);
+  const sensitiveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Fetch user and cards on mount
   useEffect(() => {
@@ -171,35 +173,59 @@ export default function Home() {
   const [regBtnText, setRegBtnText] = useState("Register via BIT Network");
   const [regBtnDisabled, setRegBtnDisabled] = useState(false);
 
-  // Fetch sensitive card details (PAN + CVV) on demand
-  const fetchSensitiveData = useCallback(async (c: CardData) => {
-    if (sensitiveData[c.id] || sensitiveLoading) return;
+  // Clear sensitive data from memory after 30 seconds
+  const scheduleSensitiveClear = useCallback(() => {
+    if (sensitiveTimerRef.current) clearTimeout(sensitiveTimerRef.current);
+    sensitiveTimerRef.current = setTimeout(() => {
+      setRevealedPan(null);
+      setRevealedCvv(null);
+      setPanVisible(false);
+      setCvvVisible(false);
+    }, 30_000);
+  }, []);
+
+  // Fetch sensitive card details fresh each time (no caching — PCI)
+  const fetchAndReveal = useCallback(async () => {
+    const current = userCards[activeCard];
+    if (!current || sensitiveLoading) return;
     setSensitiveLoading(true);
     try {
-      const res = await fetch(`/api/card-details?cardId=${c.id}`);
+      const res = await fetch(`/api/card-details?cardId=${current.id}`);
       if (res.ok) {
         const data = await res.json();
-        setSensitiveData((prev) => ({ ...prev, [c.id]: { cardNumber: data.cardNumber, cvv: data.cvv } }));
+        setRevealedPan(data.cardNumber);
+        setRevealedCvv(data.cvv);
+        scheduleSensitiveClear();
       }
     } catch {}
     setSensitiveLoading(false);
-  }, [sensitiveData, sensitiveLoading]);
+  }, [userCards, activeCard, sensitiveLoading, scheduleSensitiveClear]);
+
+  const hideSensitive = useCallback(() => {
+    setRevealedPan(null);
+    setRevealedCvv(null);
+    setPanVisible(false);
+    setCvvVisible(false);
+    if (sensitiveTimerRef.current) clearTimeout(sensitiveTimerRef.current);
+  }, []);
 
   const togglePan = useCallback(() => {
-    const current = userCards[activeCard];
-    if (!panVisible && current && !sensitiveData[current.id]) {
-      fetchSensitiveData(current);
+    if (panVisible) {
+      hideSensitive();
+    } else {
+      if (!revealedPan) fetchAndReveal();
+      setPanVisible(true);
     }
-    setPanVisible((v) => !v);
-  }, [panVisible, userCards, activeCard, sensitiveData, fetchSensitiveData]);
+  }, [panVisible, revealedPan, fetchAndReveal, hideSensitive]);
 
   const toggleCvv = useCallback(() => {
-    const current = userCards[activeCard];
-    if (!cvvVisible && current && !sensitiveData[current.id]) {
-      fetchSensitiveData(current);
+    if (cvvVisible) {
+      hideSensitive();
+    } else {
+      if (!revealedCvv) fetchAndReveal();
+      setCvvVisible(true);
     }
-    setCvvVisible((v) => !v);
-  }, [cvvVisible, userCards, activeCard, sensitiveData, fetchSensitiveData]);
+  }, [cvvVisible, revealedCvv, fetchAndReveal, hideSensitive]);
 
   // Numpads
   const usdPad = useNumpad();
@@ -220,8 +246,11 @@ export default function Home() {
   // ── Card switching ──
   const bringToFront = useCallback((idx: number) => {
     if (idx === activeCard) return;
+    setRevealedPan(null);
+    setRevealedCvv(null);
     setPanVisible(false);
     setCvvVisible(false);
+    if (sensitiveTimerRef.current) clearTimeout(sensitiveTimerRef.current);
     setActiveCard(idx);
   }, [activeCard]);
 
@@ -641,15 +670,15 @@ export default function Home() {
               </div>
               <div className="card-num-row">
                 <div className="card-num-text">
-                  {panVisible && sensitiveData[card.id]
-                    ? sensitiveData[card.id].cardNumber.replace(/(.{4})/g, "$1  ").trim()
+                  {panVisible && revealedPan
+                    ? revealedPan.replace(/(.{4})/g, "$1  ").trim()
                     : maskedNum}
                 </div>
                 <button className="card-eye-btn" onClick={togglePan}>
                   {panVisible ? <EyeOffSvg /> : <EyeSvg />}
                 </button>
-                {panVisible && sensitiveData[card.id] && (
-                  <CopyButton text={sensitiveData[card.id].cardNumber} className="card-mini-btn" />
+                {panVisible && revealedPan && (
+                  <CopyButton text={revealedPan} className="card-mini-btn" />
                 )}
               </div>
               <div className="card-row3">
@@ -660,12 +689,12 @@ export default function Home() {
                 <div className="card-f center">
                   <div className="card-fl">CVV</div>
                   <div className="card-frow center">
-                    <div className="card-fv">{cvvVisible && sensitiveData[card.id] ? sensitiveData[card.id].cvv : "•••"}</div>
+                    <div className="card-fv">{cvvVisible && revealedCvv ? revealedCvv : "•••"}</div>
                     <button className="card-eye-btn" onClick={toggleCvv}>
                       {cvvVisible ? <EyeOffSvg /> : <EyeSvg />}
                     </button>
-                    {cvvVisible && sensitiveData[card.id] && (
-                      <CopyButton text={sensitiveData[card.id].cvv} className="card-mini-btn" />
+                    {cvvVisible && revealedCvv && (
+                      <CopyButton text={revealedCvv} className="card-mini-btn" />
                     )}
                   </div>
                 </div>

@@ -66,10 +66,18 @@ export async function GET(request: NextRequest) {
 
   const detailData = await detailRes.json();
 
-  return NextResponse.json({
-    cardId: card.id,
-    cardNumber: detailData.data.card_number,
-    cvv: detailData.data.cvv,
-    expiryDate: detailData.data.expiry_date,
-  });
+  return NextResponse.json(
+    {
+      cardId: card.id,
+      cardNumber: detailData.data.card_number,
+      cvv: detailData.data.cvv,
+      expiryDate: detailData.data.expiry_date,
+    },
+    {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+        Pragma: "no-cache",
+      },
+    }
+  );
 }
