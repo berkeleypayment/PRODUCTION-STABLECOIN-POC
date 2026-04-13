@@ -572,11 +572,18 @@ export default function Home() {
           )}
 
           {!bitRegistered && (
-            <div className="reg-hero">
-              <div className="reg-icon">↙</div>
-              <div className="reg-hero-title">Register on the BIT Network</div>
-              <div className="reg-hero-sub">Link your email to your USD card so anyone on the network can send you money instantly.</div>
-            </div>
+            <>
+              <div className="reg-hero">
+                <div className="reg-icon">↙</div>
+                <div className="reg-hero-title">Register on the BIT Network</div>
+                <div className="reg-hero-sub">Link your email to your USD card so anyone on the network can send you money instantly.</div>
+              </div>
+              <div className="steps">
+                <div className="step"><div className="step-num">1</div><div className="step-text"><strong>Enter your email</strong>This becomes your BIT Network address. Anyone who knows it can send you USD.</div></div>
+                <div className="step"><div className="step-num">2</div><div className="step-text"><strong>We verify your email</strong>A quick check is run to ensure your address is ready to receive funds.</div></div>
+                <div className="step"><div className="step-num">3</div><div className="step-text"><strong>Your account is activated</strong>Transfers sent to your email auto-deposit to this USD card.</div></div>
+              </div>
+            </>
           )}
 
           <div>
