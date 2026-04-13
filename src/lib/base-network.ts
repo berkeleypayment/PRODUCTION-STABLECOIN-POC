@@ -17,12 +17,12 @@ export async function transferUSDC(params: {
   recipientAddress: string;
   amountUsd: string; // dollar amount as string, e.g. "10.50"
 }): Promise<{ txHash: string; blockNumber: number }> {
-  const provider = new ethers.JsonRpcProvider(process.env.ALCHEMY_RPC_URL);
-  const signer = new ethers.Wallet(params.senderPrivateKey, provider);
+  const provider = new ethers.JsonRpcProvider(process.env.ALCHEMY_RPC_URL?.trim());
+  const signer = new ethers.Wallet(params.senderPrivateKey.trim(), provider);
   const usdc = new ethers.Contract(USDC_ADDRESS, USDC_ABI, signer);
 
   const amount = ethers.parseUnits(params.amountUsd, 6); // USDC has 6 decimals
-  const tx = await usdc.transfer(params.recipientAddress, amount);
+  const tx = await usdc.transfer(params.recipientAddress.trim(), amount);
   const receipt = await tx.wait();
 
   return { txHash: tx.hash, blockNumber: receipt.blockNumber };
