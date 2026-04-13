@@ -1,7 +1,7 @@
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import { hashSync } from "bcryptjs";
-import { users, cards, transactions, bitRegistrations } from "./schema";
+import { companies, users, cards, transactions, bitRegistrations } from "./schema";
 
 const DATABASE_URL = process.env.DATABASE_URL!;
 const sql = neon(DATABASE_URL);
@@ -107,15 +107,23 @@ async function seed() {
   await db.delete(transactions);
   await db.delete(cards);
   await db.delete(users);
+  await db.delete(companies);
+
+  // Create companies
+  const [compA] = await db.insert(companies).values({ name: "Company A", baseWalletAddressEnvVarName: "COMPANY_A_ADDRESS", privateKeyEnvVarName: "COMPANY_A_PRIVATE_KEY" }).returning();
+  const [compB] = await db.insert(companies).values({ name: "Company B", baseWalletAddressEnvVarName: "COMPANY_B_ADDRESS", privateKeyEnvVarName: "COMPANY_B_PRIVATE_KEY" }).returning();
+  console.log("Company A:", compA.id);
+  console.log("Company B:", compB.id);
 
   const passwordHash = hashSync("password123", 10);
 
   for (let i = 0; i < DEMO_USERS.length; i++) {
     const u = DEMO_USERS[i];
+    const companyId = i < 25 ? compA.id : compB.id;
 
     const [user] = await db
       .insert(users)
-      .values({ name: u.name, email: u.email, passwordHash, avatarInitials: u.initials })
+      .values({ name: u.name, email: u.email, passwordHash, avatarInitials: u.initials, companyId })
       .returning();
 
     const cadLast4 = randPan4();

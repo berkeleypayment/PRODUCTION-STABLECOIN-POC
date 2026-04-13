@@ -12,14 +12,26 @@ export const txTypeEnum = pgEnum("tx_type", [
   "conversion",
 ]);
 
+/* ── Companies ── */
+export const companies = pgTable("companies", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  baseWalletAddressEnvVarName: varchar("base_wallet_address_env_var_name", { length: 255 }).notNull(),
+  privateKeyEnvVarName: varchar("private_key_env_var_name", { length: 255 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 /* ── Users ── */
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
+  companyId: uuid("company_id").references(() => companies.id).notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   passwordHash: varchar("password_hash", { length: 255 }).notNull(),
   avatarInitials: varchar("avatar_initials", { length: 4 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 /* ── Cards ── */
@@ -34,6 +46,7 @@ export const cards = pgTable("cards", {
   color: varchar("color", { length: 32 }).notNull(),
   active: varchar("active", { length: 5 }).notNull().default("true"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 /* ── Transactions ── */
@@ -48,6 +61,7 @@ export const transactions = pgTable("transactions", {
   status: txStatusEnum("status").notNull().default("pending"),
   metadata: varchar("metadata", { length: 1000 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 /* ── BIT Network Registrations ── */
@@ -57,4 +71,5 @@ export const bitRegistrations = pgTable("bit_registrations", {
   cardId: uuid("card_id").references(() => cards.id).notNull(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
