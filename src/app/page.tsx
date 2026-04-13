@@ -811,7 +811,7 @@ export default function Home() {
                   <div className="tx-date">{new Date(t.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} · {new Date(t.createdAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}</div>
                 </div>
                 <div className="tx-right">
-                  <div className="tx-amt">{parseFloat(t.amount) >= 0 ? "+" : ""}${Math.abs(parseFloat(t.amount)).toFixed(2)} {t.currency}</div>
+                  <div className="tx-amt">{parseFloat(t.amount) >= 0 ? "+$" : "-$"}{Math.abs(parseFloat(t.amount)).toFixed(2)} {t.currency}</div>
                   <div className="tx-stat">{t.status.charAt(0).toUpperCase() + t.status.slice(1)}</div>
                 </div>
               </div>
