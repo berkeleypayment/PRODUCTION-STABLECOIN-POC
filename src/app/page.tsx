@@ -365,16 +365,51 @@ export default function Home() {
   }, [reqPad, closeAll, showToast]);
 
   // ── Convert ──
-  const doConvert = useCallback(() => {
+  const [converting, setConverting] = useState(false);
+
+  const doConvert = useCallback(async () => {
     const amt = parseFloat(convertAmt) || 0;
     const r = liveRate || (cadToUsd ? 0.7061 : 1.417);
     const out = (amt * r).toFixed(2);
     const fromC = cadToUsd ? "CAD" : "USD";
     const toC = cadToUsd ? "USD" : "CAD";
-    if (amt <= 0) return;
-    closeAll();
-    showToast(`Converted $${amt.toFixed(2)} ${fromC} → $${out} ${toC}`);
-  }, [convertAmt, liveRate, cadToUsd, closeAll, showToast]);
+    if (amt <= 0 || converting) return;
+
+    const fromCard = userCards.find((c) => c.currency === fromC);
+    const toCard = userCards.find((c) => c.currency === toC);
+    if (!fromCard || !toCard) return;
+
+    setConverting(true);
+    try {
+      const res = await fetch("/api/convert", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fromCardId: fromCard.id,
+          toCardId: toCard.id,
+          amount: amt.toFixed(2),
+          rate: r.toString(),
+          fromCurrency: fromC,
+          toCurrency: toC,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        showToast(data.error || "Conversion failed");
+        setConverting(false);
+        return;
+      }
+
+      closeAll();
+      showToast(`Converted $${amt.toFixed(2)} ${fromC} → $${out} ${toC}`);
+      // Refresh balances
+      loadCards();
+    } catch {
+      showToast("Something went wrong");
+    }
+    setConverting(false);
+  }, [convertAmt, liveRate, cadToUsd, converting, userCards, closeAll, showToast, loadCards]);
 
   // ── Register ──
   const doRegister = useCallback(() => {
@@ -580,7 +615,7 @@ export default function Home() {
             <div className="summary-row"><span className="lbl">You send</span><span className="val">${convertAmtNum.toFixed(2)} {fc}</span></div>
             <div className="summary-row"><span className="lbl">You receive</span><span className="val">${convertOut} {tc}</span></div>
           </div>
-          <button className="btn-primary" onClick={doConvert}>Convert to {tc}</button>
+          <button className="btn-primary" onClick={doConvert} disabled={converting}>{converting ? "Converting…" : `Convert to ${tc}`}</button>
         </div>
       </div>
 
