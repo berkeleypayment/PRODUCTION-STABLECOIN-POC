@@ -533,6 +533,9 @@ export default function Home() {
   }
 
   const firstName = user.name.split(" ")[0];
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const todayStr = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
 
   return (
     <>
@@ -748,8 +751,8 @@ export default function Home() {
       {/* ══ MAIN CONTENT ══ */}
       <main className="main">
         <div>
-          <div className="greeting">Good morning, {firstName} 👋</div>
-          <div className="greeting-sub">Tuesday, March 24, 2026</div>
+          <div className="greeting">{greeting}, {firstName} 👋</div>
+          <div className="greeting-sub">{todayStr}</div>
         </div>
 
         {/* ── Card Stack ── */}
