@@ -332,14 +332,44 @@ export default function Home() {
   }, [creatingUsd, showToast, loadCards]);
 
   // ── Send USD ──
-  const doSend = useCallback(() => {
+  const [sendingBit, setSendingBit] = useState(false);
+
+  const doSend = useCallback(async () => {
     const amt = usdPad.formatted;
     const email = (document.getElementById("emailInput") as HTMLInputElement)?.value.trim();
-    if (!email || amt === "0.00") return;
-    closeAll();
-    showToast("$" + amt + " USD sent via BIT");
-    usdPad.reset();
-  }, [usdPad, closeAll, showToast]);
+    if (!email || amt === "0.00" || sendingBit) return;
+
+    const usdCard = userCards.find((c) => c.currency === "USD");
+    if (!usdCard) return;
+
+    setSendingBit(true);
+    try {
+      const res = await fetch("/api/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cardId: usdCard.id,
+          amount: amt,
+          currency: "USD",
+          recipientEmail: email,
+          type: "bit_send",
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        showToast(data.error || "Send failed");
+        setSendingBit(false);
+        return;
+      }
+      closeAll();
+      showToast(`$${amt} USD sending via BIT — settles in ~15s`);
+      usdPad.reset();
+      loadCards();
+    } catch {
+      showToast("Something went wrong");
+    }
+    setSendingBit(false);
+  }, [usdPad, sendingBit, userCards, closeAll, showToast, loadCards]);
 
   // ── Send CAD ──
   const doInteracSend = useCallback(() => {
@@ -541,7 +571,7 @@ export default function Home() {
             <span className="settlement-icon">⏱</span>
             <span>Transfers typically settle in <strong>up to 15 seconds</strong> via BIT Network.</span>
           </div>
-          <button className="btn-primary" onClick={doSend}>Send ${usdPad.formatted} USD via BIT</button>
+          <button className="btn-primary" onClick={doSend} disabled={sendingBit}>{sendingBit ? "Sending…" : `Send $${usdPad.formatted} USD via BIT`}</button>
         </div>
       </div>
 
