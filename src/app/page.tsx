@@ -95,12 +95,9 @@ function MCLogo({ small }: { small?: boolean }) {
 }
 
 function VisaLogo({ small }: { small?: boolean }) {
-  const h = small ? 14 : 20;
-  return (
-    <svg height={h} viewBox="0 0 1000 324" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M651.19 0.5C586.04 0.5 528.46 34.71 528.46 99.07C528.46 173.14 637.92 178.58 637.92 215.93C637.92 231.46 620.31 245.36 590.12 245.36C546.07 245.36 512.81 225.65 512.81 225.65L499.88 291.37C499.88 291.37 537.52 308.5 586.68 308.5C657.59 308.5 712.32 272.56 712.32 206.83C712.32 128.49 602.44 123.12 602.44 88.14C602.44 75.89 617.05 62.34 647.2 62.34C682.19 62.34 710.06 76.49 710.06 76.49L722.72 12.75C722.72 12.75 692.17 0.5 651.19 0.5ZM0.6 5.47L-0.5 11.87C-0.5 11.87 27.72 17.18 53.22 28.84C86.19 43.63 88.89 51.82 94.49 73.92L152.82 303.52H228.21L345.93 5.47H270.68L192.42 208.72L159.88 33.66C156.87 14.77 142.35 5.47 124.31 5.47H0.6ZM376.54 5.47L317.08 303.52H389.09L448.34 5.47H376.54ZM807.62 5.47C789.6 5.47 779.96 15.14 772.43 33.14L668.22 303.52H743.47L757.93 263.31H849.28L857.89 303.52H924.5L866.78 5.47H807.62ZM817.32 82.22L841.12 200.5H781.04L817.32 82.22Z" fill="white"/>
-    </svg>
-  );
+  const h = small ? 12 : 18;
+  const style = { fontFamily: "'Inter', sans-serif", fontWeight: 700, fontStyle: "italic" as const, fontSize: small ? 16 : 22, color: "white", letterSpacing: small ? 1 : 1.5, lineHeight: 1, height: h, display: "flex", alignItems: "center" };
+  return <span style={style}>VISA</span>;
 }
 
 function CardLogo({ currency, small }: { currency: string; small?: boolean }) {

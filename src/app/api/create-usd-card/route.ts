@@ -77,24 +77,26 @@ export async function POST() {
   const expiryMonth = expiryDate.substring(5, 7);
   const expiryShort = `${expiryMonth}/${expiryYear.slice(2)}`;
 
-  // Step 3: Activate card
-  const activateRes = await fetch(`${baseUrl}/api/v1/card_issuing/accounts/activate_card`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      id: Number(accountId),
-      last_four_digits: lastFour,
-      expiry_year: expiryYear,
-      expiry_month: expiryMonth,
-    }),
-  });
+  // Step 3: Activate card only if not already active
+  if (card.status !== "active") {
+    const activateRes = await fetch(`${baseUrl}/api/v1/card_issuing/accounts/activate_card`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        id: Number(accountId),
+        last_four_digits: lastFour,
+        expiry_year: expiryYear,
+        expiry_month: expiryMonth,
+      }),
+    });
 
-  if (!activateRes.ok && activateRes.status !== 201) {
-    return NextResponse.json({ error: "Failed to activate card" }, { status: 502 });
+    if (!activateRes.ok && activateRes.status !== 201) {
+      return NextResponse.json({ error: "Failed to activate card" }, { status: 502 });
+    }
   }
 
   // Step 4: Insert into DB
