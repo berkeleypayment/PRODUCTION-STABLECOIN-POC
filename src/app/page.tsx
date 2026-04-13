@@ -179,12 +179,12 @@ export default function Home() {
   const [convertAmt, setConvertAmt] = useState("100");
   const [rateUpdated, setRateUpdated] = useState("Fetching rate…");
 
-  // Register state
-  const [registered, setRegistered] = useState(false);
+  // BIT Network registration state
+  const [bitRegistered, setBitRegistered] = useState(false);
+  const [bitEmail, setBitEmail] = useState("");
   const [regEmail, setRegEmail] = useState("");
   const [regStatus, setRegStatus] = useState<{ type: string; title: string; sub: string } | null>(null);
-  const [regBtnText, setRegBtnText] = useState("Register via BIT Network");
-  const [regBtnDisabled, setRegBtnDisabled] = useState(false);
+  const [regLoading, setRegLoading] = useState(false);
 
   // Clear sensitive data from memory after 30 seconds
   const scheduleSensitiveClear = useCallback(() => {
@@ -409,40 +409,43 @@ export default function Home() {
   }, [convertAmt, liveRate, cadToUsd, converting, userCards, closeAll, showToast, loadCards]);
 
   // ── Register ──
-  const doRegister = useCallback(() => {
+  const doRegister = useCallback(async () => {
     const email = regEmail.trim();
     if (!email || !email.includes("@")) {
       setRegStatus({ type: "error", title: "Invalid email", sub: "Please enter a valid email address." });
       return;
     }
-    setRegBtnDisabled(true);
-    setRegBtnText("Checking…");
-    setRegStatus({ type: "checking", title: "Verifying email", sub: "Checking your address is ready to receive funds…" });
 
-    setTimeout(() => {
-      if (email === "taken@berkeley.com") {
-        setRegStatus({ type: "error", title: "Email already registered", sub: "This email is linked to an existing account." });
-        setRegBtnText("Register via BIT Network");
-        setRegBtnDisabled(false);
+    const usdCard = userCards.find((c) => c.currency === "USD");
+    if (!usdCard) return;
+
+    setRegLoading(true);
+    setRegStatus({ type: "checking", title: "Registering…", sub: "Linking email to your USD card on the BIT Network." });
+
+    try {
+      const res = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, cardId: usdCard.id }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        setRegStatus({ type: "error", title: "Registration failed", sub: data.error || "Something went wrong." });
+        setRegLoading(false);
         return;
       }
-      setRegStatus({ type: "checking", title: "Creating account", sub: "Linking email to your USD card…" });
-      setTimeout(() => {
-        setRegistered(true);
-        setRegStatus({ type: "success", title: "Registered successfully", sub: "Share your email to receive USD." });
-        setRegBtnText("✓ Registered");
-        setRegBtnDisabled(true);
-        showToast("Registered on BIT Network");
-      }, 1200);
-    }, 1400);
-  }, [regEmail, showToast]);
 
-  const resetRegStatus = useCallback(() => {
-    if (registered) return;
-    setRegStatus(null);
-    setRegBtnText("Register via BIT Network");
-    setRegBtnDisabled(false);
-  }, [registered]);
+      setBitRegistered(true);
+      setBitEmail(email);
+      setRegEmail("");
+      setRegStatus({ type: "success", title: "Registered successfully", sub: "Anyone can now send you USD using this email." });
+      showToast("Registered on BIT Network");
+    } catch {
+      setRegStatus({ type: "error", title: "Error", sub: "Something went wrong." });
+    }
+    setRegLoading(false);
+  }, [regEmail, userCards, showToast]);
 
   // ── Derived values ──
   const card = userCards[activeCard] || null;
@@ -463,8 +466,27 @@ export default function Home() {
     else setOpenDrawer("send");
   };
   const handleReceive = () => {
-    if (activeCard === 0) setOpenDrawer("interacReceive");
-    else setOpenDrawer("receive");
+    if (activeCard === 0) {
+      setOpenDrawer("interacReceive");
+    } else {
+      // Fetch BIT registration status before opening
+      fetch("/api/register")
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.registered) {
+            setBitRegistered(true);
+            setBitEmail(data.email);
+          } else {
+            setBitRegistered(false);
+            setBitEmail("");
+          }
+          setRegEmail("");
+          setRegStatus(null);
+          setRegLoading(false);
+        })
+        .catch(() => {});
+      setOpenDrawer("receive");
+    }
   };
 
   const handleLogout = async () => {
@@ -530,20 +552,38 @@ export default function Home() {
           <div className="drawer-close" onClick={closeAll}>✕</div>
         </div>
         <div className="drawer-body">
-          <div className="reg-hero">
-            <div className="reg-icon">↙</div>
-            <div className="reg-hero-title">Register on the BIT Network</div>
-            <div className="reg-hero-sub">Link your email to your USD card so anyone on the network can send you money instantly.</div>
-          </div>
-          <div className="steps">
-            <div className="step"><div className="step-num">1</div><div className="step-text"><strong>Enter your email</strong>This becomes your BIT Network address. Anyone who knows it can send you USD.</div></div>
-            <div className="step"><div className="step-num">2</div><div className="step-text"><strong>We verify your email</strong>A quick check is run to ensure your address is ready to receive funds.</div></div>
-            <div className="step"><div className="step-num">3</div><div className="step-text"><strong>Your account is activated</strong>Transfers sent to your email auto-deposit to this USD card.</div></div>
-          </div>
+          {/* Current BIT registration status */}
+          {bitRegistered && (
+            <div style={{ background: "var(--purple-l)", border: "1px solid var(--purple-m)", borderRadius: "var(--radius)", padding: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                <span style={{ color: "var(--purple)", fontSize: 16 }}>✓</span>
+                <span style={{ fontWeight: 600, fontSize: 14 }}>BIT Network Active</span>
+              </div>
+              <div style={{ fontSize: 13, color: "var(--sub)", lineHeight: 1.5 }}>
+                Your USD card is linked to:
+              </div>
+              <div style={{ fontFamily: "var(--mono)", fontSize: 14, fontWeight: 600, color: "var(--purple)", marginTop: 4 }}>
+                {bitEmail}
+              </div>
+              <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 8, lineHeight: 1.5 }}>
+                Anyone on the BIT Network can send you USD using this email. Registering a new email below will replace this one.
+              </div>
+            </div>
+          )}
+
+          {!bitRegistered && (
+            <div className="reg-hero">
+              <div className="reg-icon">↙</div>
+              <div className="reg-hero-title">Register on the BIT Network</div>
+              <div className="reg-hero-sub">Link your email to your USD card so anyone on the network can send you money instantly.</div>
+            </div>
+          )}
+
           <div>
-            <div className="field-label">Your Email Address</div>
-            <input className="input-field" type="email" placeholder="you@company.com" value={regEmail} onChange={(e) => { setRegEmail(e.target.value); resetRegStatus(); }} />
+            <div className="field-label">{bitRegistered ? "Replace with a new email" : "Your Email Address"}</div>
+            <input className="input-field" type="email" placeholder="you@company.com" value={regEmail} onChange={(e) => { setRegEmail(e.target.value); setRegStatus(null); }} />
           </div>
+
           {regStatus && (
             <div className={`status-box visible ${regStatus.type}`}>
               <div className="status-ico">
@@ -552,7 +592,10 @@ export default function Home() {
               <div className="status-msg"><strong>{regStatus.title}</strong><span>{regStatus.sub}</span></div>
             </div>
           )}
-          <button className="btn-primary" onClick={doRegister} disabled={regBtnDisabled}>{regBtnText}</button>
+
+          <button className="btn-primary" onClick={doRegister} disabled={regLoading}>
+            {regLoading ? "Registering…" : bitRegistered ? "Update BIT Network Email" : "Register via BIT Network"}
+          </button>
         </div>
       </div>
 
