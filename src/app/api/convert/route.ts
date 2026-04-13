@@ -98,7 +98,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Failed to load onto destination card", detail: err }, { status: 502 });
   }
 
-  // Step 3: Create transaction record
+  // Step 3: Create transaction records on both cards
+  const metadata = `$${numAmount.toFixed(2)} ${fromCurrency} → $${convertedAmount} ${toCurrency}`;
+
+  // Debit on sender card
+  await db.insert(transactions).values({
+    cardId: fromCardId,
+    type: "conversion",
+    amount: `-${numAmount.toFixed(2)}`,
+    currency: fromCurrency,
+    description: `${fromCurrency} → ${toCurrency} Conversion`,
+    status: "settled",
+    metadata,
+  });
+
+  // Credit on recipient card
   const [tx] = await db
     .insert(transactions)
     .values({
@@ -108,7 +122,7 @@ export async function POST(request: Request) {
       currency: toCurrency,
       description: `${fromCurrency} → ${toCurrency} Conversion`,
       status: "settled",
-      metadata: `$${numAmount.toFixed(2)} ${fromCurrency} → $${convertedAmount} ${toCurrency}`,
+      metadata,
     })
     .returning();
 
