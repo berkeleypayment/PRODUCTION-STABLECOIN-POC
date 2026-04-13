@@ -94,6 +94,19 @@ function MCLogo({ small }: { small?: boolean }) {
   );
 }
 
+function VisaLogo({ small }: { small?: boolean }) {
+  const h = small ? 14 : 20;
+  return (
+    <svg height={h} viewBox="0 0 1000 324" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M651.19 0.5C586.04 0.5 528.46 34.71 528.46 99.07C528.46 173.14 637.92 178.58 637.92 215.93C637.92 231.46 620.31 245.36 590.12 245.36C546.07 245.36 512.81 225.65 512.81 225.65L499.88 291.37C499.88 291.37 537.52 308.5 586.68 308.5C657.59 308.5 712.32 272.56 712.32 206.83C712.32 128.49 602.44 123.12 602.44 88.14C602.44 75.89 617.05 62.34 647.2 62.34C682.19 62.34 710.06 76.49 710.06 76.49L722.72 12.75C722.72 12.75 692.17 0.5 651.19 0.5ZM0.6 5.47L-0.5 11.87C-0.5 11.87 27.72 17.18 53.22 28.84C86.19 43.63 88.89 51.82 94.49 73.92L152.82 303.52H228.21L345.93 5.47H270.68L192.42 208.72L159.88 33.66C156.87 14.77 142.35 5.47 124.31 5.47H0.6ZM376.54 5.47L317.08 303.52H389.09L448.34 5.47H376.54ZM807.62 5.47C789.6 5.47 779.96 15.14 772.43 33.14L668.22 303.52H743.47L757.93 263.31H849.28L857.89 303.52H924.5L866.78 5.47H807.62ZM817.32 82.22L841.12 200.5H781.04L817.32 82.22Z" fill="white"/>
+    </svg>
+  );
+}
+
+function CardLogo({ currency, small }: { currency: string; small?: boolean }) {
+  return currency === "USD" ? <VisaLogo small={small} /> : <MCLogo small={small} />;
+}
+
 /* ══════════════════════════════════════════════════════════════ */
 export default function Home() {
   const router = useRouter();
@@ -109,33 +122,35 @@ export default function Home() {
   const [sensitiveLoading, setSensitiveLoading] = useState(false);
   const sensitiveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Load cards and balances
+  const loadCards = useCallback(async () => {
+    const res = await fetch("/api/cards");
+    if (!res.ok) return;
+    const data: CardData[] = await res.json();
+    setUserCards(data);
+    setUsdUnlocked(data.some((c) => c.currency === "USD"));
+    data.forEach((c) => {
+      fetch(`/api/balance?cardId=${c.id}`)
+        .then((r) => r.json())
+        .then((b) => {
+          if (b.availableBalance !== undefined) {
+            setBalances((prev) => ({ ...prev, [c.id]: b.availableBalance }));
+          }
+        })
+        .catch(() => {});
+    });
+  }, []);
+
   // Fetch user and cards on mount
   useEffect(() => {
     fetch("/api/auth/me")
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((u) => {
         setUser(u);
-        // Fetch cards
-        return fetch("/api/cards").then((r) => r.json());
-      })
-      .then((cards: CardData[]) => {
-        setUserCards(cards);
-        const hasActiveUsd = cards.some((c) => c.currency === "USD" && c.active === "true");
-        setUsdUnlocked(hasActiveUsd);
-        // Fetch balance for each card
-        cards.forEach((c) => {
-          fetch(`/api/balance?cardId=${c.id}`)
-            .then((r) => r.json())
-            .then((b) => {
-              if (b.availableBalance !== undefined) {
-                setBalances((prev) => ({ ...prev, [c.id]: b.availableBalance }));
-              }
-            })
-            .catch(() => {});
-        });
+        return loadCards();
       })
       .catch(() => router.push("/login"));
-  }, [router]);
+  }, [router, loadCards]);
 
   // Transactions
   const [txs, setTxs] = useState<{ id: string; description: string; amount: string; currency: string; status: string; createdAt: string }[]>([]);
@@ -289,19 +304,34 @@ export default function Home() {
   }, [fetchRate]);
 
   // ── Activate USD ──
-  const activateUSD = useCallback(() => {
-    setUsdUnlocked(true);
-    setModalOpen(false);
-    setActiveCard(1);
-    showToast("USD account created — fund it now");
-    setTimeout(() => {
-      setCadToUsd(true);
-      setLiveRate(null);
-      setConvertAmt("100");
-      setOpenDrawer("convert");
-      fetchRate(true);
-    }, 1600);
-  }, [showToast, fetchRate]);
+  const [creatingUsd, setCreatingUsd] = useState(false);
+
+  const activateUSD = useCallback(async () => {
+    if (creatingUsd) return;
+    setCreatingUsd(true);
+    try {
+      const res = await fetch("/api/create-usd-card", { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json();
+        showToast(data.error || "Failed to create USD account");
+        setCreatingUsd(false);
+        return;
+      }
+      setModalOpen(false);
+      showToast("USD account created!");
+      await loadCards();
+      // Switch to the USD card (should be index 1 now)
+      const updatedRes = await fetch("/api/cards");
+      if (updatedRes.ok) {
+        const updatedCards: CardData[] = await updatedRes.json();
+        const usdIdx = updatedCards.findIndex((c) => c.currency === "USD");
+        if (usdIdx >= 0) setActiveCard(usdIdx);
+      }
+    } catch {
+      showToast("Something went wrong");
+    }
+    setCreatingUsd(false);
+  }, [creatingUsd, showToast, loadCards]);
 
   // ── Send USD ──
   const doSend = useCallback(() => {
@@ -619,7 +649,7 @@ export default function Home() {
             <div className="modal-perk"><span className="perk-icon">⇄</span> Convert your CAD balance to USD</div>
           </div>
           <div className="modal-actions">
-            <button className="btn-primary" onClick={activateUSD}>Create USD Account</button>
+            <button className="btn-primary" onClick={activateUSD} disabled={creatingUsd}>{creatingUsd ? "Creating…" : "Create USD Account"}</button>
             <button className="btn-secondary" onClick={() => setModalOpen(false)}>Maybe later</button>
           </div>
         </div>
@@ -650,7 +680,7 @@ export default function Home() {
                       <div className="peek-cur">{otherFlag} {other.currency}</div>
                       <div className="peek-bal">{otherBal}</div>
                     </div>
-                    <MCLogo small />
+                    <CardLogo currency={other.currency} small />
                   </div>
                   <div className="peek-bottom">
                     <div className="peek-num">••••{other.panLast4}</div>
@@ -666,7 +696,7 @@ export default function Home() {
                   <div className="card-badge">{cardFlag} {cardCurrency}</div>
                   <div className="card-bal-top">{cardBal}</div>
                 </div>
-                <MCLogo />
+                <CardLogo currency={cardCurrency} />
               </div>
               <div className="card-num-row">
                 <div className="card-num-text">
