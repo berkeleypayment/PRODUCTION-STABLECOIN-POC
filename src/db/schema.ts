@@ -56,7 +56,5 @@ export const bitRegistrations = pgTable("bit_registrations", {
   userId: uuid("user_id").references(() => users.id).notNull(),
   cardId: uuid("card_id").references(() => cards.id).notNull(),
   email: varchar("email", { length: 255 }).notNull().unique(),
-  accountId: varchar("account_id", { length: 32 }).notNull(),
-  extTag: varchar("ext_tag", { length: 32 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

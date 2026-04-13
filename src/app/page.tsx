@@ -183,9 +183,6 @@ export default function Home() {
   const [registered, setRegistered] = useState(false);
   const [regEmail, setRegEmail] = useState("");
   const [regStatus, setRegStatus] = useState<{ type: string; title: string; sub: string } | null>(null);
-  const [regCopyVisible, setRegCopyVisible] = useState(false);
-  const [accountId, setAccountId] = useState("—");
-  const [extTag, setExtTag] = useState("—");
   const [regBtnText, setRegBtnText] = useState("Register via BIT Network");
   const [regBtnDisabled, setRegBtnDisabled] = useState(false);
 
@@ -432,9 +429,6 @@ export default function Home() {
       setRegStatus({ type: "checking", title: "Creating account", sub: "Linking email to your USD card…" });
       setTimeout(() => {
         setRegistered(true);
-        setAccountId("BIT-" + Math.random().toString(36).substring(2, 8).toUpperCase());
-        setExtTag("XT-" + Math.random().toString(36).substring(2, 10).toUpperCase());
-        setRegCopyVisible(true);
         setRegStatus({ type: "success", title: "Registered successfully", sub: "Share your email to receive USD." });
         setRegBtnText("✓ Registered");
         setRegBtnDisabled(true);
@@ -446,7 +440,6 @@ export default function Home() {
   const resetRegStatus = useCallback(() => {
     if (registered) return;
     setRegStatus(null);
-    setRegCopyVisible(false);
     setRegBtnText("Register via BIT Network");
     setRegBtnDisabled(false);
   }, [registered]);
@@ -557,25 +550,6 @@ export default function Home() {
                 {regStatus.type === "checking" ? <div className="spinner" /> : regStatus.type === "success" ? <span style={{ color: "var(--purple)" }}>✓</span> : <span style={{ color: "var(--error)" }}>✗</span>}
               </div>
               <div className="status-msg"><strong>{regStatus.title}</strong><span>{regStatus.sub}</span></div>
-            </div>
-          )}
-          {regCopyVisible && (
-            <div className="copy-box visible">
-              <div>
-                <div className="copy-label">BIT Network Account ID</div>
-                <div className="copy-row">
-                  <div className="copy-val">{accountId}</div>
-                  <CopyButton text={accountId} />
-                </div>
-              </div>
-              <div className="divider-line" />
-              <div>
-                <div className="copy-label">Auto-Deposit Tag</div>
-                <div className="copy-row">
-                  <div className="copy-val">{extTag}</div>
-                  <CopyButton text={extTag} />
-                </div>
-              </div>
             </div>
           )}
           <button className="btn-primary" onClick={doRegister} disabled={regBtnDisabled}>{regBtnText}</button>

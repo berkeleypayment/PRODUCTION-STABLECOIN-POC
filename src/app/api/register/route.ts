@@ -38,17 +38,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Card not found" }, { status: 404 });
   }
 
-  const accountId = "BIT-" + Math.random().toString(36).substring(2, 8).toUpperCase();
-  const extTag = "XT-" + Math.random().toString(36).substring(2, 10).toUpperCase();
-
   const [reg] = await db
     .insert(bitRegistrations)
     .values({
       userId: card.userId,
       cardId,
       email,
-      accountId,
-      extTag,
     })
     .returning();
 
