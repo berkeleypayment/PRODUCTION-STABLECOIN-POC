@@ -79,7 +79,7 @@ export async function POST() {
 
   // Step 3: Activate card only if not already active
   if (card.status !== "active") {
-    const activateRes = await fetch(`${baseUrl}/api/v1/card_issuing/accounts/activate_card`, {
+    const activateRes = await fetch(`${baseUrl}/api/v1/card_issuing/accounts/${accountId}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -87,10 +87,8 @@ export async function POST() {
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
-        id: Number(accountId),
+        status: "mark_card_active",
         last_four_digits: lastFour,
-        expiry_year: expiryYear,
-        expiry_month: expiryMonth,
       }),
     });
 
