@@ -706,7 +706,7 @@ export default function Home() {
                     : maskedNum}
                 </div>
                 <button className="card-eye-btn" onClick={togglePan}>
-                  {panVisible ? <EyeOffSvg /> : <EyeSvg />}
+                  {sensitiveLoading ? <div className="spinner" style={{ width: 11, height: 11, borderWidth: 1.5, borderColor: "rgba(255,255,255,0.2)", borderTopColor: "white" }} /> : panVisible ? <EyeOffSvg /> : <EyeSvg />}
                 </button>
                 {panVisible && revealedPan && (
                   <CopyButton text={revealedPan} className="card-mini-btn" />
@@ -722,7 +722,7 @@ export default function Home() {
                   <div className="card-frow center">
                     <div className="card-fv">{cvvVisible && revealedCvv ? revealedCvv : "•••"}</div>
                     <button className="card-eye-btn" onClick={toggleCvv}>
-                      {cvvVisible ? <EyeOffSvg /> : <EyeSvg />}
+                      {sensitiveLoading ? <div className="spinner" style={{ width: 11, height: 11, borderWidth: 1.5, borderColor: "rgba(255,255,255,0.2)", borderTopColor: "white" }} /> : cvvVisible ? <EyeOffSvg /> : <EyeSvg />}
                     </button>
                     {cvvVisible && revealedCvv && (
                       <CopyButton text={revealedCvv} className="card-mini-btn" />
