@@ -40,7 +40,23 @@ export async function POST(request: Request) {
   const baseUrl = process.env.BERKELEY_BASE_URL;
   const token = process.env.BERKELEY_PRIVATE_TOKEN;
 
-  // Step 1: Unload from source card (amount in cents)
+  // Step 1: Check source card balance
+  const balRes = await fetch(
+    `${baseUrl}/api/v1/card_issuing/accounts/${fromCard.accountId}/balance`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+
+  if (!balRes.ok) {
+    return NextResponse.json({ error: "Failed to check balance" }, { status: 502 });
+  }
+
+  const balData = await balRes.json();
+  const available = parseFloat(balData.data.available_balance);
+  if (available < numAmount) {
+    return NextResponse.json({ error: `Insufficient balance. Available: $${available.toFixed(2)}` }, { status: 400 });
+  }
+
+  // Step 2: Unload from source card (amount in cents)
   const unloadCents = Math.round(numAmount * 100);
   const unloadRes = await fetch(`${baseUrl}/api/v1/card_issuing/value_loads/unload`, {
     method: "POST",
