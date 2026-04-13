@@ -600,13 +600,13 @@ export default function Home() {
             <div className="convert-box" style={{ background: "var(--white)" }}>
               <div className="convert-box-label">From · {fc}</div>
               <input type="number" className="convert-input" value={convertAmt} min="0" onChange={(e) => setConvertAmt(e.target.value)} />
-              <div className="convert-box-cur">{fc === "CAD" ? "Balance: $5,001.86" : "Balance: $1,200.41"}</div>
+              <div className="convert-box-cur">{(() => { const c = userCards.find((c) => c.currency === fc); return c && balances[c.id] !== undefined ? `Balance: $${parseFloat(balances[c.id]).toLocaleString("en-US", { minimumFractionDigits: 2 })}` : "Balance: …"; })()}</div>
             </div>
             <div className="swap-icon" onClick={swapConvert}>⇄</div>
             <div className="convert-box">
               <div className="convert-box-label">To · {tc}</div>
               <div className="convert-box-val">${convertOut}</div>
-              <div className="convert-box-cur">{tc === "CAD" ? "Balance: $5,001.86" : "Balance: $1,200.41"}</div>
+              <div className="convert-box-cur">{(() => { const c = userCards.find((c) => c.currency === tc); return c && balances[c.id] !== undefined ? `Balance: $${parseFloat(balances[c.id]).toLocaleString("en-US", { minimumFractionDigits: 2 })}` : "Balance: …"; })()}</div>
             </div>
           </div>
           <div className="convert-summary">
