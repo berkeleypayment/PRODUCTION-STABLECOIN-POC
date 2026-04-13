@@ -601,7 +601,7 @@ export default function Home() {
           )}
 
           <button className="btn-primary" onClick={doRegister} disabled={regLoading}>
-            {regLoading ? "Registering…" : bitRegistered ? "Update BIT Network Email" : "Register via BIT Network"}
+            {regLoading ? "Registering…" : bitRegistered ? "Update BIT Network Address" : "Register via BIT Network"}
           </button>
         </div>
       </div>
