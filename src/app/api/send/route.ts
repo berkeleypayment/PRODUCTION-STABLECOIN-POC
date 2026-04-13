@@ -194,9 +194,40 @@ export async function POST(request: Request) {
         .where(eq(transactions.id, senderTx.id));
     } catch (err) {
       console.error("BIT send async flow failed:", err);
+      const errMsg = err instanceof Error ? err.message : String(err);
+
+      // Refund sender card by reloading the original amount
+      let refundOk = false;
+      try {
+        const refundRes = await fetch(`${baseUrl}/api/v1/card_issuing/value_loads/load`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            account_id: Number(senderCard.accountId),
+            amount: unloadCents,
+            message: `Refund failed BIT transfer to ${recipientEmail}`,
+          }),
+        });
+        refundOk = refundRes.ok || refundRes.status === 201;
+      } catch (refundErr) {
+        console.error("Refund failed:", refundErr);
+      }
+
+      // Mark sender tx as failed with net zero amount
       await db
         .update(transactions)
-        .set({ status: "failed", updatedAt: new Date() })
+        .set({
+          status: "failed",
+          amount: "0.00",
+          metadata: refundOk
+            ? `Failed: ${errMsg} — refunded`
+            : `Failed: ${errMsg} — REFUND FAILED, manual review required`,
+          updatedAt: new Date(),
+        })
         .where(eq(transactions.id, senderTx.id));
     }
   });
