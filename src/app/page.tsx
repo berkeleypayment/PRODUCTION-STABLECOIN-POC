@@ -104,8 +104,8 @@ function VisaLogo({ small }: { small?: boolean }) {
   );
 }
 
-function CardLogo({ currency, small }: { currency: string; small?: boolean }) {
-  if (process.env.NEXT_PUBLIC_CARD_LOGO_ALL_VISA === "true") return <VisaLogo small={small} />;
+function CardLogo({ currency, small, allVisa }: { currency: string; small?: boolean; allVisa?: boolean }) {
+  if (allVisa) return <VisaLogo small={small} />;
   return currency === "USD" ? <VisaLogo small={small} /> : <MCLogo small={small} />;
 }
 
@@ -114,6 +114,7 @@ export default function Home() {
   const router = useRouter();
   const [user, setUser] = useState<{ id: string; name: string; email: string; avatarInitials: string } | null>(null);
   const [userCards, setUserCards] = useState<CardData[]>([]);
+  const [allVisaLogo, setAllVisaLogo] = useState(false);
   const [balances, setBalances] = useState<Record<string, string>>({});
   const [activeCard, setActiveCard] = useState(0);
   const [usdUnlocked, setUsdUnlocked] = useState(false);
@@ -149,7 +150,8 @@ export default function Home() {
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((u) => {
         setUser(u);
-        return loadCards();
+        loadCards();
+        fetch("/api/config").then((r) => r.json()).then((c) => setAllVisaLogo(c.allVisaLogo)).catch(() => {});
       })
       .catch(() => router.push("/login"));
   }, [router, loadCards]);
@@ -774,7 +776,7 @@ export default function Home() {
                       <div className="peek-cur">{otherFlag} {other.currency}</div>
                       <div className="peek-bal">{otherBal}</div>
                     </div>
-                    <CardLogo currency={other.currency} small />
+                    <CardLogo currency={other.currency} small allVisa={allVisaLogo} />
                   </div>
                   <div className="peek-bottom">
                     <div className="peek-num">••••{other.panLast4}</div>
@@ -790,7 +792,7 @@ export default function Home() {
                   <div className="card-badge">{cardFlag} {cardCurrency}</div>
                   <div className="card-bal-top">{cardBal}</div>
                 </div>
-                <CardLogo currency={cardCurrency} />
+                <CardLogo currency={cardCurrency} allVisa={allVisaLogo} />
               </div>
               <div className="card-num-row">
                 <div className="card-num-text">
