@@ -806,7 +806,7 @@ export default function Home() {
               </div>
               <div className="card-row3">
                 <div className="card-f">
-                  <div className="card-fl">Card Holder</div>
+                  <div className="card-fl">Cardholder</div>
                   <div className="card-fv">{user.name}</div>
                 </div>
                 <div className="card-f center">
