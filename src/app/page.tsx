@@ -290,7 +290,7 @@ export default function Home() {
     const dir = activeCard === 0;
     setCadToUsd(dir);
     setLiveRate(null);
-    setConvertAmt("100");
+    setConvertAmt("");
     setOpenDrawer("convert");
     fetchRate(dir);
   }, [activeCard, fetchRate]);
@@ -403,7 +403,11 @@ export default function Home() {
     const out = (amt * r).toFixed(2);
     const fromC = cadToUsd ? "CAD" : "USD";
     const toC = cadToUsd ? "USD" : "CAD";
-    if (amt <= 0 || converting) return;
+    if (converting) return;
+    if (amt <= 0) {
+      showToast("Amount must be greater than 0");
+      return;
+    }
 
     const fromCard = userCards.find((c) => c.currency === fromC);
     const toCard = userCards.find((c) => c.currency === toC);
