@@ -290,7 +290,7 @@ export default function Home() {
     const dir = activeCard === 0;
     setCadToUsd(dir);
     setLiveRate(null);
-    setConvertAmt("");
+    setConvertAmt("0");
     setOpenDrawer("convert");
     fetchRate(dir);
   }, [activeCard, fetchRate]);
