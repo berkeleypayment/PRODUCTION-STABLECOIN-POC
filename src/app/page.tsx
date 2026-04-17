@@ -104,10 +104,8 @@ function VisaLogo({ small }: { small?: boolean }) {
   );
 }
 
-const ALL_VISA = process.env.NEXT_PUBLIC_CARD_LOGO_ALL_VISA === "true";
-
 function CardLogo({ currency, small }: { currency: string; small?: boolean }) {
-  if (ALL_VISA) return <VisaLogo small={small} />;
+  if (process.env.NEXT_PUBLIC_CARD_LOGO_ALL_VISA === "true") return <VisaLogo small={small} />;
   return currency === "USD" ? <VisaLogo small={small} /> : <MCLogo small={small} />;
 }
 
