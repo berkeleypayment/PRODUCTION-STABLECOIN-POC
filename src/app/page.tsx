@@ -46,7 +46,44 @@ function useNumpad() {
   const press = (d: string) => setRaw((r) => (r.length >= 7 ? r : r + d));
   const del = () => setRaw((r) => r.slice(0, -1));
   const reset = () => setRaw("");
-  return { raw, formatted: fmtRaw(raw), press, del, reset };
+  // Set raw from a typed dollar amount (e.g. "12.50" → "1250")
+  const setFromAmount = (val: string) => {
+    // Strip everything except digits and decimal
+    const cleaned = val.replace(/[^\d.]/g, "");
+    if (!cleaned) { setRaw(""); return; }
+    const [intPart = "0", decPart = ""] = cleaned.split(".");
+    const dec = (decPart + "00").slice(0, 2);
+    const combined = (intPart + dec).replace(/^0+/, "") || "0";
+    setRaw(combined.slice(0, 7));
+  };
+  return { raw, formatted: fmtRaw(raw), press, del, reset, setFromAmount };
+}
+
+/* ── Editable amount input (synced with numpad raw state) ── */
+function AmountInput({ formatted, onChange }: { formatted: string; onChange: (v: string) => void }) {
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      value={formatted}
+      onChange={(e) => onChange(e.target.value)}
+      onFocus={(e) => { if (e.target.value === "0.00") e.target.select(); }}
+      style={{
+        fontSize: 46,
+        fontWeight: 700,
+        letterSpacing: "-2.5px",
+        color: "var(--text)",
+        fontFamily: "var(--mono)",
+        background: "transparent",
+        border: "none",
+        outline: "none",
+        textAlign: "center",
+        width: "100%",
+        padding: 0,
+        margin: 0,
+      }}
+    />
+  );
 }
 
 /* ── Numpad component ── */
@@ -152,6 +189,15 @@ export default function Home() {
         setUser(u);
         loadCards();
         fetch("/api/config").then((r) => r.json()).then((c) => setAllVisaLogo(c.allVisaLogo)).catch(() => {});
+        // Pre-fetch BIT registration status so Receive drawer opens without flicker
+        fetch("/api/register").then((r) => r.json()).then((data) => {
+          if (data.registered) {
+            setBitRegistered(true);
+            setBitEmail(data.email);
+          } else {
+            setBitRegistered(false);
+          }
+        }).catch(() => setBitRegistered(false));
       })
       .catch(() => router.push("/login"));
   }, [router, loadCards]);
@@ -183,7 +229,7 @@ export default function Home() {
   const [rateUpdated, setRateUpdated] = useState("Fetching rate…");
 
   // BIT Network registration state
-  const [bitRegistered, setBitRegistered] = useState(false);
+  const [bitRegistered, setBitRegistered] = useState<boolean | null>(null);
   const [bitEmail, setBitEmail] = useState("");
   const [regEmail, setRegEmail] = useState("");
   const [regStatus, setRegStatus] = useState<{ type: string; title: string; sub: string } | null>(null);
@@ -569,7 +615,10 @@ export default function Home() {
         <div className="drawer-body">
           <div className="amount-box">
             <div className="amount-label-sm">Amount</div>
-            <div className="amount-val"><span>$</span><span>{usdPad.formatted}</span></div>
+            <div className="amount-val" style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 4 }}>
+              <span>$</span>
+              <AmountInput formatted={usdPad.formatted} onChange={usdPad.setFromAmount} />
+            </div>
             <div className="amount-badge">🇺🇸 USD</div>
           </div>
           <Numpad onPress={usdPad.press} onDel={usdPad.del} />
@@ -611,7 +660,7 @@ export default function Home() {
             </div>
           )}
 
-          {!bitRegistered && (
+          {bitRegistered === false && (
             <>
               <div className="reg-hero">
                 <div className="reg-icon">↙</div>
@@ -663,7 +712,7 @@ export default function Home() {
           <div className="convert-row">
             <div className="convert-box" style={{ background: "var(--white)" }}>
               <div className="convert-box-label">From · {fc}</div>
-              <input type="number" className="convert-input" value={convertAmt} min="0" onChange={(e) => setConvertAmt(e.target.value)} />
+              <input type="number" className="convert-input" value={convertAmt} min="0" onFocus={(e) => { if (parseFloat(convertAmt) === 0) { setConvertAmt(""); e.target.select(); } }} onBlur={() => { if (convertAmt === "") setConvertAmt("0.00"); }} onChange={(e) => setConvertAmt(e.target.value)} />
               <div className="convert-box-cur">{(() => { const c = userCards.find((c) => c.currency === fc); return c && balances[c.id] !== undefined ? `Balance: $${parseFloat(balances[c.id]).toLocaleString("en-US", { minimumFractionDigits: 2 })}` : "Balance: …"; })()}</div>
             </div>
             <div className="swap-icon" onClick={swapConvert}>⇄</div>
@@ -692,7 +741,10 @@ export default function Home() {
         <div className="drawer-body">
           <div className="amount-box">
             <div className="amount-label-sm">Amount</div>
-            <div className="amount-val"><span>$</span><span>{cadPad.formatted}</span></div>
+            <div className="amount-val" style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 4 }}>
+              <span>$</span>
+              <AmountInput formatted={cadPad.formatted} onChange={cadPad.setFromAmount} />
+            </div>
             <div className="amount-badge">🇨🇦 CAD</div>
           </div>
           <Numpad onPress={cadPad.press} onDel={cadPad.del} />
@@ -721,7 +773,10 @@ export default function Home() {
         <div className="drawer-body">
           <div className="amount-box">
             <div className="amount-label-sm">Amount</div>
-            <div className="amount-val"><span>$</span><span>{reqPad.formatted}</span></div>
+            <div className="amount-val" style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 4 }}>
+              <span>$</span>
+              <AmountInput formatted={reqPad.formatted} onChange={reqPad.setFromAmount} />
+            </div>
             <div className="amount-badge">🇨🇦 CAD</div>
           </div>
           <Numpad onPress={reqPad.press} onDel={reqPad.del} />
