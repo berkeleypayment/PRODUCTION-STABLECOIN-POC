@@ -60,14 +60,17 @@ function useNumpad() {
 }
 
 /* ── Editable amount input (synced with numpad raw state) ── */
-function AmountInput({ formatted, onChange }: { formatted: string; onChange: (v: string) => void }) {
+function AmountInput({ formatted, onChange, raw }: { formatted: string; onChange: (v: string) => void; raw: string }) {
+  // Show empty when raw is empty (so placeholder appears smaller); otherwise show formatted value
+  const displayValue = raw === "" ? "" : formatted;
   return (
     <input
       type="text"
       inputMode="decimal"
-      value={formatted}
+      value={displayValue}
+      placeholder="0.00"
       onChange={(e) => onChange(e.target.value)}
-      onFocus={(e) => { if (e.target.value === "0.00") e.target.select(); }}
+      onFocus={(e) => e.target.select()}
       style={{
         fontSize: 46,
         fontWeight: 700,
@@ -617,7 +620,7 @@ export default function Home() {
             <div className="amount-label-sm">Amount</div>
             <div className="amount-val" style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 4 }}>
               <span>$</span>
-              <AmountInput formatted={usdPad.formatted} onChange={usdPad.setFromAmount} />
+              <AmountInput formatted={usdPad.formatted} raw={usdPad.raw} onChange={usdPad.setFromAmount} />
             </div>
             <div className="amount-badge">🇺🇸 USD</div>
           </div>
@@ -743,7 +746,7 @@ export default function Home() {
             <div className="amount-label-sm">Amount</div>
             <div className="amount-val" style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 4 }}>
               <span>$</span>
-              <AmountInput formatted={cadPad.formatted} onChange={cadPad.setFromAmount} />
+              <AmountInput formatted={cadPad.formatted} raw={cadPad.raw} onChange={cadPad.setFromAmount} />
             </div>
             <div className="amount-badge">🇨🇦 CAD</div>
           </div>
@@ -775,7 +778,7 @@ export default function Home() {
             <div className="amount-label-sm">Amount</div>
             <div className="amount-val" style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 4 }}>
               <span>$</span>
-              <AmountInput formatted={reqPad.formatted} onChange={reqPad.setFromAmount} />
+              <AmountInput formatted={reqPad.formatted} raw={reqPad.raw} onChange={reqPad.setFromAmount} />
             </div>
             <div className="amount-badge">🇨🇦 CAD</div>
           </div>
