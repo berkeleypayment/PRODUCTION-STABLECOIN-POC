@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { cards } from "@/db/schema";
+import { cards, users, bitRegistrations } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 
@@ -111,6 +111,45 @@ export async function POST() {
       active: "true",
     })
     .returning();
+
+  // Step 5: Auto-register user's email on BIT Network linked to this USD card
+  try {
+    const [user] = await db.select().from(users).where(eq(users.id, session.userId));
+    if (user) {
+      const userEmail = user.email.toLowerCase().trim();
+      const [existingReg] = await db
+        .select()
+        .from(bitRegistrations)
+        .where(eq(bitRegistrations.userId, session.userId))
+        .limit(1);
+
+      if (existingReg) {
+        // Update existing registration to point to new USD card
+        await db
+          .update(bitRegistrations)
+          .set({ cardId: newCard.id, email: userEmail, updatedAt: new Date() })
+          .where(eq(bitRegistrations.id, existingReg.id));
+      } else {
+        // Create new registration (skip if email already taken by another user)
+        const [emailTaken] = await db
+          .select()
+          .from(bitRegistrations)
+          .where(eq(bitRegistrations.email, userEmail))
+          .limit(1);
+
+        if (!emailTaken) {
+          await db.insert(bitRegistrations).values({
+            userId: session.userId,
+            cardId: newCard.id,
+            email: userEmail,
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Auto BIT registration failed:", err);
+    // Don't fail the whole request — user can still register manually via Receive flow
+  }
 
   return NextResponse.json(newCard, { status: 201 });
 }
