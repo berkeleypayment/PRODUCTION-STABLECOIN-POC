@@ -389,7 +389,12 @@ export default function Home() {
   const doSend = useCallback(async () => {
     const amt = usdPad.formatted;
     const email = (document.getElementById("emailInput") as HTMLInputElement)?.value.trim();
-    if (!email || amt === "0.00" || sendingBit) return;
+    if (sendingBit) return;
+    if (!email) return;
+    if (parseFloat(amt) < 1) {
+      showToast("Minimum amount is $1.00");
+      return;
+    }
 
     const usdCard = userCards.find((c) => c.currency === "USD");
     if (!usdCard) return;
@@ -427,7 +432,11 @@ export default function Home() {
   const doInteracSend = useCallback(() => {
     const amt = cadPad.formatted;
     const rec = (document.getElementById("interacRecipient") as HTMLInputElement)?.value.trim();
-    if (!rec || amt === "0.00") return;
+    if (!rec) return;
+    if (parseFloat(amt) < 1) {
+      showToast("Minimum amount is $1.00");
+      return;
+    }
     closeAll();
     showToast("$" + amt + " CAD sent via Interac");
     cadPad.reset();
@@ -437,7 +446,11 @@ export default function Home() {
   const doInteracRequest = useCallback(() => {
     const amt = reqPad.formatted;
     const rec = (document.getElementById("reqRecipient") as HTMLInputElement)?.value.trim();
-    if (!rec || amt === "0.00") return;
+    if (!rec) return;
+    if (parseFloat(amt) < 1) {
+      showToast("Minimum amount is $1.00");
+      return;
+    }
     closeAll();
     showToast("Request for $" + amt + " CAD sent via Interac");
     reqPad.reset();
@@ -453,8 +466,8 @@ export default function Home() {
     const fromC = cadToUsd ? "CAD" : "USD";
     const toC = cadToUsd ? "USD" : "CAD";
     if (converting) return;
-    if (amt <= 0) {
-      showToast("Amount must be greater than 0");
+    if (amt < 1) {
+      showToast("Minimum amount is $1.00");
       return;
     }
 
