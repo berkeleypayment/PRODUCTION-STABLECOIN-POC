@@ -61,8 +61,10 @@ function useNumpad() {
 
 /* ── Editable amount input (synced with numpad raw state) ── */
 function AmountInput({ formatted, onChange, raw }: { formatted: string; onChange: (v: string) => void; raw: string }) {
-  // Show empty when raw is empty (so placeholder appears smaller); otherwise show formatted value
-  const displayValue = raw === "" ? "" : formatted;
+  const [focused, setFocused] = useState(false);
+  const isZero = raw === "" || parseFloat(formatted) === 0;
+  // Show empty while typing in a "zero" field so placeholder shows; otherwise show formatted value
+  const displayValue = focused && isZero ? "" : formatted;
   return (
     <input
       type="text"
@@ -70,7 +72,8 @@ function AmountInput({ formatted, onChange, raw }: { formatted: string; onChange
       value={displayValue}
       placeholder="0.00"
       onChange={(e) => onChange(e.target.value)}
-      onFocus={(e) => e.target.select()}
+      onFocus={(e) => { setFocused(true); if (isZero) e.target.select(); }}
+      onBlur={() => setFocused(false)}
       style={{
         fontSize: 46,
         fontWeight: 700,
