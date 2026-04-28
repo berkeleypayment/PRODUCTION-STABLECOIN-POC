@@ -309,7 +309,11 @@ export default function Home() {
   const closeAll = useCallback(() => {
     setOpenDrawer(null);
     setModalOpen(false);
-  }, []);
+    // Clear amount state so reopening starts fresh
+    usdPad.reset();
+    cadPad.reset();
+    reqPad.reset();
+  }, [usdPad, cadPad, reqPad]);
 
   // ── Card switching ──
   const bringToFront = useCallback((idx: number) => {
