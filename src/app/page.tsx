@@ -208,6 +208,32 @@ export default function Home() {
       .catch(() => router.push("/login"));
   }, [router, loadCards]);
 
+  // Idle session timeout (30 minutes of no activity → logout)
+  useEffect(() => {
+    if (!user) return;
+    const IDLE_MS = 30 * 60 * 1000;
+    let timer: ReturnType<typeof setTimeout>;
+
+    const logoutNow = async () => {
+      await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+      router.push("/login");
+    };
+
+    const reset = () => {
+      clearTimeout(timer);
+      timer = setTimeout(logoutNow, IDLE_MS);
+    };
+
+    const events: (keyof WindowEventMap)[] = ["mousedown", "keydown", "touchstart", "scroll", "mousemove"];
+    events.forEach((e) => window.addEventListener(e, reset, { passive: true }));
+    reset();
+
+    return () => {
+      clearTimeout(timer);
+      events.forEach((e) => window.removeEventListener(e, reset));
+    };
+  }, [user, router]);
+
   // Transactions
   const [txs, setTxs] = useState<{ id: string; description: string; amount: string; currency: string; status: string; createdAt: string }[]>([]);
 
